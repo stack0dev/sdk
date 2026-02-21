@@ -86,6 +86,7 @@ export interface MemoryResponse {
   metadata?: Record<string, unknown>;
   expiresAt?: string;
   compactedFrom?: string[];
+  hasEmbedding?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -108,6 +109,7 @@ export interface RecallRequest {
 
 export interface RecallResult extends MemoryResponse {
   score: number;
+  similarityMethod?: "vector" | "keyword";
 }
 
 export interface SearchRequest {
@@ -213,4 +215,53 @@ export interface CompactionJob {
   error?: string;
   createdAt: string;
   completedAt?: string;
+}
+
+// ============================================================================
+// ENTITY TYPES
+// ============================================================================
+
+export type EntityType = "person" | "organization" | "place" | "concept" | "product" | "event";
+
+export interface Entity {
+  id: string;
+  agentId: string;
+  name: string;
+  type: EntityType;
+  metadata?: Record<string, unknown>;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  mentionCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface EntityRelation {
+  id: string;
+  agentId: string;
+  sourceEntityId: string;
+  targetEntityId: string;
+  sourceEntity?: Entity;
+  targetEntity?: Entity;
+  relationType: string;
+  strength: number;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ListEntitiesParams {
+  agentId: string;
+  type?: EntityType;
+  limit?: number;
+  offset?: number;
+}
+
+export interface GetEntityParams {
+  entityId: string;
+}
+
+export interface ListEntitiesResult {
+  entities: Entity[];
+  total: number;
 }

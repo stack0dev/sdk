@@ -6,6 +6,7 @@
 import { HttpClient, type HttpClientConfig } from "../lib/http-client";
 import { MemoryAgents } from "./agents";
 import { MemoryCollections } from "./collections";
+import { MemoryEntities } from "./entities";
 import type {
   DeleteManyRequest,
   ListMemoriesParams,
@@ -28,12 +29,16 @@ export class Memory {
   /** Manage memory collections */
   readonly collections: MemoryCollections;
 
+  /** Manage extracted entities */
+  readonly entities: MemoryEntities;
+
   constructor(config: HttpClientConfig) {
     this.http = new HttpClient(config);
 
     // Initialize sub-clients
     this.agents = new MemoryAgents(this.http);
     this.collections = new MemoryCollections(this.http);
+    this.entities = new MemoryEntities(this.http);
   }
 
   // ============================================================================

@@ -10,6 +10,7 @@ export { Memory } from "./client";
 // Sub-clients (also accessible via Memory instance)
 export { MemoryAgents } from "./agents";
 export { MemoryCollections } from "./collections";
+export { MemoryEntities } from "./entities";
 
 // Types
 export type {
@@ -39,4 +40,11 @@ export type {
   CollectionStats,
   CompactRequest,
   CompactionJob,
+  // Entity types
+  EntityType,
+  Entity,
+  EntityRelation,
+  ListEntitiesParams,
+  GetEntityParams,
+  ListEntitiesResult,
 } from "./types";
