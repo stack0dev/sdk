@@ -58,6 +58,17 @@
  *   variables: { topic: 'AI trends' },
  * });
  * console.log(run.output);
+ *
+ * // Store and recall agent memories
+ * await stack0.memory.store({
+ *   agentId: 'agent_123',
+ *   content: 'User prefers dark mode',
+ *   type: 'preference',
+ * });
+ * const memories = await stack0.memory.recall({
+ *   agentId: 'agent_123',
+ *   query: 'user preferences',
+ * });
  * ```
  */
 
@@ -69,6 +80,7 @@ import { Webdata } from "./webdata/client";
 import { Integrations } from "./integrations/client";
 import { Marketing } from "./marketing/client";
 import { Workflows } from "./workflows/client";
+import { Memory } from "./memory/client";
 import type { HttpClientConfig } from "./lib/http-client";
 
 export interface Stack0Config extends HttpClientConfig {
@@ -93,6 +105,7 @@ export class Stack0 {
   public integrations: Integrations;
   public marketing: Marketing;
   public workflows: Workflows;
+  public memory: Memory;
 
   /**
    * @deprecated Use `screenshots` and `extraction` instead. Will be removed in a future version.
@@ -113,6 +126,7 @@ export class Stack0 {
     this.integrations = new Integrations(clientConfig);
     this.marketing = new Marketing(clientConfig);
     this.workflows = new Workflows(clientConfig);
+    this.memory = new Memory(clientConfig);
 
     // Keep webdata for backward compatibility
     this.webdata = new Webdata(clientConfig);
@@ -127,6 +141,7 @@ export * from "./extraction";
 export * from "./integrations";
 export * from "./marketing";
 export * from "./workflows";
+export * from "./memory";
 
 // Export shared types
 export * from "./lib/shared-types";

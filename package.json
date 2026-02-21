@@ -35,6 +35,11 @@
       "types": "./dist/webdata/index.d.ts",
       "require": "./dist/webdata/index.js",
       "import": "./dist/webdata/index.mjs"
+    },
+    "./memory": {
+      "types": "./dist/memory/index.d.ts",
+      "require": "./dist/memory/index.js",
+      "import": "./dist/memory/index.mjs"
     }
   },
   "files": [
@@ -53,6 +58,7 @@
     "webpage-capture",
     "ai-extraction",
     "web-scraping",
+    "agent-memory",
     "api",
     "sdk"
   ],
