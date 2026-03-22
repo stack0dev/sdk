@@ -1,6 +1,6 @@
 {
   "name": "@stack0/sdk",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "description": "Official Stack0 SDK for Node.js",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -42,10 +42,7 @@
       "import": "./dist/memory/index.mjs"
     }
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "keywords": [
     "stack0",
     "email",
@@ -64,7 +61,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/CampbellVentures/stack0.git",
+    "url": "https://github.com/stack0dev/stack0.git",
     "directory": "packages/sdk"
   },
   "license": "MIT",

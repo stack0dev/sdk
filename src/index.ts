@@ -143,8 +143,20 @@ export * from "./marketing";
 export * from "./workflows";
 export * from "./memory";
 
-// Export shared types
-export * from "./lib/shared-types";
+// Export shared types (Environment excluded — already exported by ./workflows)
+export {
+  type Stack0Error,
+  type PaginatedRequest,
+  type PaginatedResponse,
+  type BatchJobStatus,
+  type ScheduleFrequency,
+  type GetBatchJobRequest,
+  type ListBatchJobsRequest,
+  type CreateBatchResponse,
+  type GetScheduleRequest,
+  type ListSchedulesRequest,
+  type CreateScheduleResponse,
+} from "./lib/shared-types";
 
 // Re-export webdata client only (types are available from screenshots/extraction)
 export { Webdata } from "./webdata/client";

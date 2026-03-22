@@ -47,6 +47,16 @@ export interface UploadUrlResponse {
   expiresAt: Date;
 }
 
+export interface UploadFromUrlRequest {
+  projectSlug: string;
+  /** URL to fetch the file from */
+  sourceUrl: string;
+  filename: string;
+  mimeType: string;
+  folder?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface ConfirmUploadRequest {
   assetId: string;
 }

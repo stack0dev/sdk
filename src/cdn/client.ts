@@ -8,6 +8,7 @@ import type {
   Asset,
   UploadUrlRequest,
   UploadUrlResponse,
+  UploadFromUrlRequest,
   UpdateAssetRequest,
   DeleteAssetsResponse,
   ListAssetsRequest,
@@ -223,6 +224,28 @@ export class CDN {
 
     // Confirm upload
     return this.confirmUpload(assetId);
+  }
+
+  /**
+   * Upload a file from a remote URL (server-side fetch).
+   * The server streams the file directly from the source URL into storage,
+   * so the client never touches the bytes. Ideal for serverless environments
+   * with tight memory limits.
+   *
+   * @example
+   * ```typescript
+   * const asset = await cdn.uploadFromUrl({
+   *   projectSlug: 'my-project',
+   *   sourceUrl: 'https://replicate.delivery/output/video.mp4',
+   *   filename: 'video.mp4',
+   *   mimeType: 'video/mp4',
+   * });
+   * console.log(asset.cdnUrl);
+   * ```
+   */
+  async uploadFromUrl(request: UploadFromUrlRequest): Promise<Asset> {
+    const response = await this.http.post<Asset>("/cdn/upload-from-url", request);
+    return this.convertAssetDates(response);
   }
 
   /**
