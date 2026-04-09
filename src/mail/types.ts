@@ -57,6 +57,8 @@ export interface SendEmailRequest {
   metadata?: Record<string, unknown>;
   attachments?: Attachment[];
   headers?: Record<string, string>;
+  inReplyTo?: string;
+  references?: string;
   scheduledAt?: Date | string;
 }
 
@@ -265,6 +267,8 @@ export interface DnsRecord {
 export interface Domain {
   id: string;
   organizationId: string;
+  projectId: string | null;
+  environment: Environment;
   domain: string;
   status: DomainStatus;
   dkimRecord: DnsRecord[] | null;
@@ -288,6 +292,8 @@ export type ListDomainsResponse = Domain[];
 
 export interface AddDomainRequest {
   domain: string;
+  projectSlug: string;
+  environment?: Environment;
 }
 
 export interface AddDomainResponse {
@@ -1073,4 +1079,118 @@ export interface EventAnalyticsResponse {
     date: string;
     count: number;
   }>;
+}
+
+// ============================================================================
+// MAILBOX TYPES (Agent Email)
+// ============================================================================
+
+export interface Mailbox {
+  id: string;
+  address: string;
+  localPart: string;
+  displayName?: string;
+  domain: string;
+  domainId: string;
+  webhookUrl: string;
+  status: "active" | "paused" | "disabled";
+  maxInboundPerDay: number;
+  metadata?: Record<string, unknown>;
+  environment: Environment;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface CreateMailboxRequest {
+  projectSlug?: string;
+  environment?: Environment;
+  address?: string;
+  displayName?: string;
+  domain: string;
+  webhookUrl: string;
+  metadata?: Record<string, unknown>;
+  maxInboundPerDay?: number;
+}
+
+export interface UpdateMailboxRequest {
+  id: string;
+  displayName?: string;
+  webhookUrl?: string;
+  metadata?: Record<string, unknown>;
+  status?: "active" | "paused" | "disabled";
+  maxInboundPerDay?: number;
+}
+
+export interface ListMailboxesRequest {
+  projectSlug?: string;
+  environment?: Environment;
+  domain?: string;
+  status?: "active" | "paused" | "disabled";
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ListMailboxesResponse {
+  mailboxes: Mailbox[];
+  hasMore: boolean;
+  nextCursor?: string;
+}
+
+export interface InboundEmailAddress {
+  email: string;
+  name?: string;
+}
+
+export interface InboundAttachment {
+  filename: string;
+  contentType: string;
+  size: number;
+  url?: string;
+}
+
+export interface InboundMessage {
+  id: string;
+  mailboxId: string;
+  mailbox: string;
+  messageId?: string;
+  inReplyTo?: string;
+  references?: string;
+  from: InboundEmailAddress;
+  to: string;
+  subject?: string;
+  html?: string;
+  text?: string;
+  attachments?: InboundAttachment[];
+  webhookDelivered: boolean;
+  webhookAttempts: number;
+  createdAt: Date | string;
+}
+
+export interface ListInboundMessagesRequest {
+  mailboxId?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ListInboundMessagesResponse {
+  messages: InboundMessage[];
+  hasMore: boolean;
+  nextCursor?: string;
+}
+
+export interface InboundWebhookPayload {
+  event: "email.inbound";
+  mailbox: string;
+  mailboxId: string;
+  from: InboundEmailAddress;
+  to: string;
+  subject?: string;
+  text?: string;
+  html?: string;
+  messageId?: string;
+  inReplyTo?: string;
+  references?: string[];
+  attachments?: InboundAttachment[];
+  metadata?: Record<string, unknown>;
+  receivedAt: string;
 }

@@ -49,6 +49,23 @@ export type {
   TableRow as IntegrationTableRow,
   CreateTableRowInput as IntegrationCreateTableRowInput,
   UpdateTableRowInput as IntegrationUpdateTableRowInput,
+  // Calendar types
+  Calendar,
+  CalendarEvent,
+  CalendarAttendee,
+  CreateCalendarEventInput,
+  UpdateCalendarEventInput,
+  ListEventsOptions,
+  // Email types
+  EmailMessage,
+  EmailThread,
+  EmailLabel,
+  EmailAttachment,
+  SendEmailInput as IntegrationSendEmailInput,
+  ListEmailMessagesOptions,
+  // Connection Session types
+  CreateConnectionSessionRequest,
+  CreateConnectionSessionResponse,
   // Passthrough
   PassthroughRequest,
 } from "./types";

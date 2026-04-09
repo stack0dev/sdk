@@ -25,7 +25,7 @@ export interface ListOptions {
 // CONNECTOR & CONNECTION TYPES
 // ============================================================================
 
-export type ConnectorCategory = "crm" | "storage" | "communication" | "productivity";
+export type ConnectorCategory = "crm" | "storage" | "communication" | "productivity" | "calendar" | "email";
 
 export interface Connector {
   id: string;
@@ -43,7 +43,7 @@ export interface Connection {
   connectorId: string;
   connectorSlug: string;
   name?: string;
-  status: "pending" | "connected" | "error" | "disconnected";
+  status: "pending" | "connected" | "error" | "disconnected" | "expired";
   externalAccountId?: string;
   externalAccountName?: string;
   lastSyncedAt?: Date;
@@ -412,6 +412,152 @@ export interface CreateTableRowInput {
 export type UpdateTableRowInput = CreateTableRowInput;
 
 // ============================================================================
+// CALENDAR TYPES
+// ============================================================================
+
+export interface CalendarAttendee {
+  email: string;
+  name?: string;
+  status?: "accepted" | "declined" | "tentative" | "needsAction";
+  organizer?: boolean;
+}
+
+export interface Calendar {
+  id: string;
+  name: string;
+  description?: string;
+  isPrimary?: boolean;
+  timeZone?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  remoteData?: unknown;
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  startTime: Date;
+  endTime: Date;
+  isAllDay?: boolean;
+  location?: string;
+  attendees?: CalendarAttendee[];
+  organizer?: CalendarAttendee;
+  status?: "confirmed" | "tentative" | "cancelled";
+  webUrl?: string;
+  calendarId?: string;
+  recurrence?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+  remoteData?: unknown;
+}
+
+export interface CreateCalendarEventInput {
+  title: string;
+  description?: string;
+  startTime: Date;
+  endTime: Date;
+  isAllDay?: boolean;
+  location?: string;
+  attendees?: { email: string; name?: string }[];
+  recurrence?: string[];
+}
+
+export type UpdateCalendarEventInput = Partial<CreateCalendarEventInput>;
+
+export interface ListEventsOptions extends ListOptions {
+  timeMin?: Date;
+  timeMax?: Date;
+  query?: string;
+}
+
+// ============================================================================
+// EMAIL TYPES
+// ============================================================================
+
+export interface EmailAttachment {
+  id?: string;
+  filename: string;
+  mimeType: string;
+  size?: number;
+}
+
+export interface EmailMessage {
+  id: string;
+  threadId?: string;
+  subject?: string;
+  from?: string;
+  to?: string[];
+  cc?: string[];
+  bcc?: string[];
+  body?: string;
+  bodyHtml?: string;
+  snippet?: string;
+  labels?: string[];
+  attachments?: EmailAttachment[];
+  isRead?: boolean;
+  isStarred?: boolean;
+  date?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+  remoteData?: unknown;
+}
+
+export interface EmailThread {
+  id: string;
+  subject?: string;
+  snippet?: string;
+  messageCount?: number;
+  messages?: EmailMessage[];
+  lastMessageDate?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+  remoteData?: unknown;
+}
+
+export interface EmailLabel {
+  id: string;
+  name: string;
+  type?: "system" | "user";
+  messagesTotal?: number;
+  messagesUnread?: number;
+}
+
+export interface SendEmailInput {
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body: string;
+  bodyHtml?: string;
+  replyToMessageId?: string;
+}
+
+export interface ListEmailMessagesOptions extends ListOptions {
+  query?: string;
+  labelIds?: string[];
+}
+
+// ============================================================================
+// CONNECTION SESSION TYPES
+// ============================================================================
+
+export interface CreateConnectionSessionRequest {
+  endUserId: string;
+  connectorSlug: string;
+  redirectUrl: string;
+  projectId?: string;
+  environment?: IntegrationEnvironment;
+  name?: string;
+}
+
+export interface CreateConnectionSessionResponse {
+  authUrl: string;
+  sessionId: string;
+  state: string;
+}
+
+// ============================================================================
 // PASSTHROUGH TYPES
 // ============================================================================
 
@@ -436,6 +582,7 @@ export interface InitiateOAuthRequest {
   environment?: IntegrationEnvironment;
   name?: string;
   redirectUrl: string;
+  endUserId?: string;
 }
 
 export interface InitiateOAuthResponse {
@@ -568,6 +715,7 @@ export interface ListConnectionsRequest {
   environment?: IntegrationEnvironment;
   connectorSlug?: string;
   status?: Connection["status"];
+  endUserId?: string;
   limit?: number;
 }
 

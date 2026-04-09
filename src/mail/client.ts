@@ -9,6 +9,7 @@ import { Campaigns } from "./campaigns";
 import { Contacts } from "./contacts";
 import { Domains } from "./domains";
 import { Events } from "./events";
+import { Mailboxes } from "./mailboxes";
 import { Sequences } from "./sequences";
 import { Templates } from "./templates";
 import type {
@@ -55,6 +56,9 @@ export class Mail {
   /** Track and manage custom events */
   readonly events: Events;
 
+  /** Manage agent mailboxes */
+  readonly mailboxes: Mailboxes;
+
   constructor(config: HttpClientConfig) {
     this.http = new HttpClient(config);
 
@@ -66,6 +70,7 @@ export class Mail {
     this.campaigns = new Campaigns(this.http);
     this.sequences = new Sequences(this.http);
     this.events = new Events(this.http);
+    this.mailboxes = new Mailboxes(this.http);
   }
 
   // ============================================================================

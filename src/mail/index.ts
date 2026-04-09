@@ -13,6 +13,7 @@ export { Campaigns } from "./campaigns";
 export { Contacts } from "./contacts";
 export { Domains } from "./domains";
 export { Events } from "./events";
+export { Mailboxes } from "./mailboxes";
 export { Sequences } from "./sequences";
 export { Templates } from "./templates";
 
@@ -158,4 +159,16 @@ export type {
   ListEventOccurrencesRequest,
   ListEventOccurrencesResponse,
   EventAnalyticsResponse,
+  // Mailbox types
+  Mailbox,
+  CreateMailboxRequest,
+  UpdateMailboxRequest,
+  ListMailboxesRequest,
+  ListMailboxesResponse,
+  InboundMessage,
+  InboundEmailAddress,
+  InboundAttachment,
+  ListInboundMessagesRequest,
+  ListInboundMessagesResponse,
+  InboundWebhookPayload,
 } from "./types";

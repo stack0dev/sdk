@@ -38,6 +38,21 @@ import type {
   TableRow,
   CreateTableRowInput,
   UpdateTableRowInput,
+  // Calendar
+  Calendar as CalendarType,
+  CalendarEvent,
+  CreateCalendarEventInput,
+  UpdateCalendarEventInput,
+  ListEventsOptions,
+  // Email
+  EmailMessage,
+  EmailThread,
+  EmailLabel,
+  SendEmailInput,
+  ListEmailMessagesOptions,
+  // Connection Session
+  CreateConnectionSessionRequest,
+  CreateConnectionSessionResponse,
   // Passthrough
   PassthroughRequest,
   // OAuth & Connections
@@ -373,6 +388,119 @@ class Productivity {
 }
 
 /**
+ * Calendar operations client
+ */
+class CalendarClient {
+  private http: HttpClient;
+
+  constructor(http: HttpClient) {
+    this.http = http;
+  }
+
+  async listCalendars(connectionId: string, options?: ListOptions): Promise<PaginatedResult<CalendarType>> {
+    const params = new URLSearchParams({ connectionId });
+    if (options?.cursor) params.set("cursor", options.cursor);
+    if (options?.limit) params.set("limit", String(options.limit));
+    return this.http.get(`/integrations/calendar/calendars?${params}`);
+  }
+
+  async listEvents(
+    connectionId: string,
+    calendarId: string,
+    options?: ListEventsOptions,
+  ): Promise<PaginatedResult<CalendarEvent>> {
+    const params = new URLSearchParams({ connectionId, calendarId });
+    if (options?.cursor) params.set("cursor", options.cursor);
+    if (options?.limit) params.set("limit", String(options.limit));
+    if (options?.timeMin) params.set("timeMin", options.timeMin.toISOString());
+    if (options?.timeMax) params.set("timeMax", options.timeMax.toISOString());
+    if (options?.query) params.set("query", options.query);
+    return this.http.get(`/integrations/calendar/events?${params}`);
+  }
+
+  async getEvent(connectionId: string, calendarId: string, eventId: string): Promise<CalendarEvent> {
+    return this.http.get(
+      `/integrations/calendar/events/${eventId}?connectionId=${connectionId}&calendarId=${calendarId}`,
+    );
+  }
+
+  async createEvent(connectionId: string, calendarId: string, data: CreateCalendarEventInput): Promise<CalendarEvent> {
+    return this.http.post("/integrations/calendar/events", { connectionId, calendarId, data });
+  }
+
+  async updateEvent(
+    connectionId: string,
+    calendarId: string,
+    eventId: string,
+    data: UpdateCalendarEventInput,
+  ): Promise<CalendarEvent> {
+    return this.http.patch(`/integrations/calendar/events/${eventId}`, { connectionId, calendarId, data });
+  }
+
+  async deleteEvent(connectionId: string, calendarId: string, eventId: string): Promise<{ success: boolean }> {
+    return this.http.delete(
+      `/integrations/calendar/events/${eventId}?connectionId=${connectionId}&calendarId=${calendarId}`,
+    );
+  }
+}
+
+/**
+ * Mail (Email) operations client
+ */
+class Mail {
+  private http: HttpClient;
+
+  constructor(http: HttpClient) {
+    this.http = http;
+  }
+
+  async listMessages(connectionId: string, options?: ListEmailMessagesOptions): Promise<PaginatedResult<EmailMessage>> {
+    const params = new URLSearchParams({ connectionId });
+    if (options?.cursor) params.set("cursor", options.cursor);
+    if (options?.limit) params.set("limit", String(options.limit));
+    if (options?.query) params.set("query", options.query);
+    if (options?.labelIds) {
+      for (const labelId of options.labelIds) {
+        params.append("labelIds", labelId);
+      }
+    }
+    return this.http.get(`/integrations/email/messages?${params}`);
+  }
+
+  async getMessage(connectionId: string, messageId: string): Promise<EmailMessage> {
+    return this.http.get(`/integrations/email/messages/${messageId}?connectionId=${connectionId}`);
+  }
+
+  async sendMessage(connectionId: string, data: SendEmailInput): Promise<EmailMessage> {
+    return this.http.post("/integrations/email/messages/send", { connectionId, data });
+  }
+
+  async listThreads(connectionId: string, options?: ListEmailMessagesOptions): Promise<PaginatedResult<EmailThread>> {
+    const params = new URLSearchParams({ connectionId });
+    if (options?.cursor) params.set("cursor", options.cursor);
+    if (options?.limit) params.set("limit", String(options.limit));
+    if (options?.query) params.set("query", options.query);
+    if (options?.labelIds) {
+      for (const labelId of options.labelIds) {
+        params.append("labelIds", labelId);
+      }
+    }
+    return this.http.get(`/integrations/email/threads?${params}`);
+  }
+
+  async getThread(connectionId: string, threadId: string): Promise<EmailThread> {
+    return this.http.get(`/integrations/email/threads/${threadId}?connectionId=${connectionId}`);
+  }
+
+  async listLabels(connectionId: string): Promise<EmailLabel[]> {
+    const result = await this.http.get<{ labels: EmailLabel[] }>(
+      `/integrations/email/labels?connectionId=${connectionId}`,
+    );
+    return result.labels;
+  }
+}
+
+/**
  * Stack0 Integrations SDK Client
  *
  * @example
@@ -415,6 +543,8 @@ export class Integrations {
   public storage: Storage;
   public communication: Communication;
   public productivity: Productivity;
+  public calendar: CalendarClient;
+  public mail: Mail;
 
   constructor(config: HttpClientConfig) {
     this.http = new HttpClient(config);
@@ -423,6 +553,8 @@ export class Integrations {
     this.storage = new Storage(this.http);
     this.communication = new Communication(this.http);
     this.productivity = new Productivity(this.http);
+    this.calendar = new CalendarClient(this.http);
+    this.mail = new Mail(this.http);
   }
 
   // ============================================================================
@@ -465,6 +597,7 @@ export class Integrations {
     if (request?.environment) params.set("environment", request.environment);
     if (request?.connectorSlug) params.set("connectorSlug", request.connectorSlug);
     if (request?.status) params.set("status", request.status);
+    if (request?.endUserId) params.set("endUserId", request.endUserId);
     if (request?.limit) params.set("limit", request.limit.toString());
     const queryString = params.toString();
 
@@ -500,6 +633,23 @@ export class Integrations {
    */
   async initiateOAuth(request: InitiateOAuthRequest): Promise<InitiateOAuthResponse> {
     return this.http.post<InitiateOAuthResponse>("/integrations/connections/oauth/initiate", request);
+  }
+
+  /**
+   * Create a connection session for an end user
+   *
+   * @example
+   * ```typescript
+   * const { authUrl, sessionId } = await integrations.createConnectionSession({
+   *   endUserId: 'user_123',
+   *   connectorSlug: 'google-calendar',
+   *   redirectUrl: 'https://yourapp.com/oauth/callback',
+   * });
+   * // Redirect user to authUrl
+   * ```
+   */
+  async createConnectionSession(request: CreateConnectionSessionRequest): Promise<CreateConnectionSessionResponse> {
+    return this.http.post<CreateConnectionSessionResponse>("/integrations/connections/session", request);
   }
 
   /**
