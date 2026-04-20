@@ -36,6 +36,21 @@
       "require": "./dist/webdata/index.js",
       "import": "./dist/webdata/index.mjs"
     },
+    "./crawl": {
+      "types": "./dist/crawl/index.d.ts",
+      "require": "./dist/crawl/index.js",
+      "import": "./dist/crawl/index.mjs"
+    },
+    "./map": {
+      "types": "./dist/map/index.d.ts",
+      "require": "./dist/map/index.js",
+      "import": "./dist/map/index.mjs"
+    },
+    "./documents": {
+      "types": "./dist/documents/index.d.ts",
+      "require": "./dist/documents/index.js",
+      "import": "./dist/documents/index.mjs"
+    },
     "./memory": {
       "types": "./dist/memory/index.d.ts",
       "require": "./dist/memory/index.js",

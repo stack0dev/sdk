@@ -77,11 +77,41 @@ import { CDN } from "./cdn/client";
 import { Screenshots } from "./screenshots/client";
 import { Extraction } from "./extraction/client";
 import { Webdata } from "./webdata/client";
+import { Crawl$ } from "./crawl/client";
+import { Map$ } from "./map/client";
+import { Documents } from "./documents/client";
 import { Integrations } from "./integrations/client";
 import { Marketing } from "./marketing/client";
 import { Workflows } from "./workflows/client";
 import { Memory } from "./memory/client";
-import type { HttpClientConfig } from "./lib/http-client";
+import { HttpClient, type HttpClientConfig } from "./lib/http-client";
+
+// ============================================================================
+// PROJECT TYPES
+// ============================================================================
+
+export interface Project {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  iconUrl?: string | null;
+  organizationId: string;
+  createdAt: Date | string;
+  updatedAt?: Date | string | null;
+}
+
+export interface CreateProjectRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateProjectRequest {
+  id: string;
+  name?: string;
+  description?: string;
+  iconUrl?: string | null;
+}
 
 export interface Stack0Config extends HttpClientConfig {
   apiKey: string;
@@ -98,10 +128,15 @@ export interface Stack0Config extends HttpClientConfig {
  * Provides access to all Stack0 services
  */
 export class Stack0 {
+  private http: HttpClient;
+
   public mail: Mail;
   public cdn: CDN;
   public screenshots: Screenshots;
   public extraction: Extraction;
+  public crawl: Crawl$;
+  public map: Map$;
+  public documents: Documents;
   public integrations: Integrations;
   public marketing: Marketing;
   public workflows: Workflows;
@@ -118,11 +153,16 @@ export class Stack0 {
       baseUrl: config.baseUrl,
     };
 
+    this.http = new HttpClient(clientConfig);
+
     // Initialize clients
     this.mail = new Mail(clientConfig);
     this.cdn = new CDN(clientConfig, config.cdnUrl);
     this.screenshots = new Screenshots(clientConfig);
     this.extraction = new Extraction(clientConfig);
+    this.crawl = new Crawl$(clientConfig);
+    this.map = new Map$(clientConfig);
+    this.documents = new Documents(clientConfig);
     this.integrations = new Integrations(clientConfig);
     this.marketing = new Marketing(clientConfig);
     this.workflows = new Workflows(clientConfig);
@@ -131,6 +171,35 @@ export class Stack0 {
     // Keep webdata for backward compatibility
     this.webdata = new Webdata(clientConfig);
   }
+
+  // ============================================================================
+  // PROJECTS
+  // ============================================================================
+
+  async listProjects(): Promise<Project[]> {
+    return this.http.get<Project[]>("/projects");
+  }
+
+  async getProject(id: string): Promise<Project> {
+    return this.http.get<Project>(`/projects/${id}`);
+  }
+
+  async getProjectBySlug(slug: string): Promise<Project> {
+    return this.http.get<Project>(`/projects/by-slug/${slug}`);
+  }
+
+  async createProject(request: CreateProjectRequest): Promise<Project> {
+    return this.http.post<Project>("/projects", request);
+  }
+
+  async updateProject(request: UpdateProjectRequest): Promise<Project> {
+    const { id, ...data } = request;
+    return this.http.patch<Project>(`/projects/${id}`, data);
+  }
+
+  async deleteProject(id: string): Promise<{ success: boolean }> {
+    return this.http.delete(`/projects/${id}`);
+  }
 }
 
 // Export sub-modules
@@ -138,6 +207,9 @@ export * from "./mail";
 export * from "./cdn";
 export * from "./screenshots";
 export * from "./extraction";
+export * from "./crawl";
+export * from "./map";
+export * from "./documents";
 export * from "./integrations";
 export * from "./marketing";
 export * from "./workflows";
