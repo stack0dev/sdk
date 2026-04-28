@@ -9,7 +9,7 @@ import { Stack0 } from '@stack0/sdk';
 
 const stack0 = new Stack0({
   apiKey: 'stack0_...',
-  baseUrl: 'https://api.stack0.dev'
+  baseUrl: 'https://api.stack0.dev/v1'
 });
 
 // Discover trending topics
