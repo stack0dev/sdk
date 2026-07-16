@@ -79,8 +79,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/stack0dev/stack0.git",
-    "directory": "packages/sdk"
+    "url": "https://github.com/stack0dev/sdk.git"
   },
   "license": "MIT",
   "scripts": {
