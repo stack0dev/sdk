@@ -689,7 +689,7 @@ export interface CampaignStatsResponse {
 // ============================================================================
 
 export type SequenceStatus = "draft" | "active" | "paused" | "archived";
-export type SequenceTriggerType = "manual" | "event_received" | "contact_added" | "api" | "scheduled";
+export type SequenceTriggerType = "contact_created" | "contact_updated" | "contact_added_to_list" | "event_received";
 export type SequenceTriggerFrequency = "once" | "always";
 export type SequenceNodeType =
   | "trigger"
@@ -751,6 +751,11 @@ export interface SequenceConnection {
 export interface SequenceWithNodes extends Sequence {
   nodes: SequenceNode[];
   connections: SequenceConnection[];
+  /**
+   * Average time from entering to completing the sequence, in milliseconds.
+   * Null when no contact has completed it yet.
+   */
+  avgCompletionMs: number | null;
 }
 
 export interface CreateSequenceRequest {
@@ -913,6 +918,8 @@ export interface SequenceEntry {
 export interface ListSequenceEntriesRequest extends PaginatedRequest {
   id: string; // sequence ID
   status?: SequenceEntryStatus;
+  /** Filter by contact email, first name, or last name. */
+  search?: string;
 }
 
 export interface ListSequenceEntriesResponse extends PaginatedResponse {
@@ -1157,6 +1164,9 @@ export interface InboundMessage {
   references?: string;
   from: InboundEmailAddress;
   to: string;
+  cc?: string[];
+  bcc?: string[];
+  replyTo?: string;
   subject?: string;
   html?: string;
   text?: string;
@@ -1184,6 +1194,13 @@ export interface InboundWebhookPayload {
   mailboxId: string;
   from: InboundEmailAddress;
   to: string;
+  // CC/BCC recipients from the original message. Delivered as arrays (the stored
+  // comma-separated string, split + trimmed); each entry is an email or a full
+  // "Name <addr>" recipient. Empty array when none were present.
+  cc?: string[];
+  bcc?: string[];
+  // Single Reply-To address if the inbound message set one.
+  replyTo?: string;
   subject?: string;
   text?: string;
   html?: string;
@@ -1193,4 +1210,16 @@ export interface InboundWebhookPayload {
   attachments?: InboundAttachment[];
   metadata?: Record<string, unknown>;
   receivedAt: string;
+}
+
+// Shape `mail.reply()` accepts as the parent message — either the live webhook
+// payload or a stored InboundMessage row.
+export type InboundEmailPayload = Pick<
+  InboundWebhookPayload,
+  "mailbox" | "from" | "subject" | "messageId" | "references"
+>;
+
+export interface ReplyBody {
+  text?: string;
+  html?: string;
 }

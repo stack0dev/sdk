@@ -204,12 +204,55 @@ export interface VideoVariant {
   bitrate?: number;
 }
 
+/**
+ * Watermark burned into a video during transcode.
+ *
+ * The image-watermark fields mirror the image-upload watermark config
+ * ({@link ImageWatermarkConfig}), so the same settings you use to watermark photos work
+ * for video — the original asset stays clean and every transcoded rendition is watermarked.
+ * Set `type: "text"` to burn a text string instead of a logo.
+ */
 export interface WatermarkOptions {
-  type: "image" | "text";
-  imageAssetId?: string;
+  /** "image" (default) composites a logo; "text" burns a text string. */
+  type?: "image" | "text";
+  /** Logo source: another CDN asset (image watermark). Provide `assetId` or `url`. */
+  assetId?: string;
+  /** Logo source: a direct URL (image watermark, alternative to `assetId`). */
+  url?: string;
+  /** Text to render (required when `type` is "text"). */
   text?: string;
-  position: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
+  /** Font family for text watermarks. */
+  fontFamily?: string;
+  /** Font size in pixels for text watermarks. */
+  fontSize?: number;
+  /** Text color as `#RRGGBB` (text watermarks). */
+  fontColor?: string;
+  /** Placement on the frame (default: "bottom-right"). */
+  position?: ImageWatermarkPosition;
+  /** Horizontal inset from the anchored edge in pixels (default: 20). */
+  offsetX?: number;
+  /** Vertical inset from the anchored edge in pixels (default: 20). */
+  offsetY?: number;
+  /** "relative" sizes by a percentage of the video width; "absolute" uses width/height (default: "relative"). */
+  sizingMode?: ImageWatermarkSizingMode;
+  /** Absolute width in pixels (used when `sizingMode` is "absolute"). */
+  width?: number;
+  /** Absolute height in pixels (used when `sizingMode` is "absolute"). */
+  height?: number;
+  /** Relative size as a percentage of the video width (used when `sizingMode` is "relative"; default: 15). */
+  scale?: number;
+  /** Opacity 0-100 (default: 80). */
   opacity?: number;
+  /** Tile the watermark across the whole frame, e.g. for copyright protection (default: false). */
+  tile?: boolean;
+  /** Horizontal spacing between tiles in pixels (default: 100). */
+  tileSpacingX?: number;
+  /** Vertical spacing between tiles in pixels (default: 100). */
+  tileSpacingY?: number;
+  /** Rotation in degrees, -360 to 360 (default: 0). Image watermarks only. */
+  rotation?: number;
+  /** Corner radius in pixels clipping the logo, 0-500 (default: 0). Image watermarks only. */
+  borderRadius?: number;
 }
 
 // ============================================================================

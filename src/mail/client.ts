@@ -17,10 +17,12 @@ import type {
   EmailAnalyticsResponse,
   GetEmailResponse,
   HourlyAnalyticsResponse,
+  InboundEmailPayload,
   ListEmailsRequest,
   ListEmailsResponse,
   ListSendersRequest,
   ListSendersResponse,
+  ReplyBody,
   ResendEmailResponse,
   SendBatchEmailRequest,
   SendBatchEmailResponse,
@@ -92,6 +94,49 @@ export class Mail {
    */
   async send(request: SendEmailRequest): Promise<SendEmailResponse> {
     return this.http.post<SendEmailResponse>("/mail/send", request);
+  }
+
+  /**
+   * Reply to an inbound email with correct RFC 5322 threading headers.
+   * Automatically derives `from`, `to`, `subject`, `inReplyTo`, and `references`
+   * from the inbound webhook payload — pass through any overrides as the second
+   * argument.
+   *
+   * @example
+   * ```typescript
+   * // In your webhook handler:
+   * await mail.reply(inboundEmail, {
+   *   text: 'Thanks for the note — talk soon.',
+   * });
+   * ```
+   */
+  async reply(
+    inbound: InboundEmailPayload,
+    body: ReplyBody & Partial<SendEmailRequest>,
+  ): Promise<SendEmailResponse> {
+    const parentId = inbound.messageId;
+    const refs = [...(inbound.references ?? []), parentId].filter(Boolean) as string[];
+    const subject = body.subject ?? (inbound.subject?.startsWith("Re:") ? inbound.subject : `Re: ${inbound.subject ?? ""}`);
+
+    const request: SendEmailRequest = {
+      from: body.from ?? inbound.mailbox,
+      to: body.to ?? inbound.from.email,
+      subject,
+      text: body.text,
+      html: body.html,
+      replyTo: body.replyTo,
+      cc: body.cc,
+      bcc: body.bcc,
+      tags: body.tags,
+      metadata: body.metadata,
+      templateId: body.templateId,
+      templateVariables: body.templateVariables,
+      environment: body.environment,
+      inReplyTo: body.inReplyTo ?? parentId ?? undefined,
+      references: body.references ?? (refs.length ? refs.join(" ") : undefined),
+    };
+
+    return this.send(request);
   }
 
   /**

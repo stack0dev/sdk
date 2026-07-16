@@ -533,6 +533,22 @@ export class CDN {
    * });
    * console.log(`Job started: ${job.id}`);
    * ```
+   *
+   * @example Burn in a logo watermark (same config shape as image watermarks)
+   * ```typescript
+   * const job = await cdn.transcode({
+   *   projectSlug: 'my-project',
+   *   assetId: 'video-asset-id',
+   *   outputFormat: 'mp4',
+   *   variants: [{ quality: '1080p', codec: 'h264' }],
+   *   watermark: {
+   *     assetId: 'logo-asset-id',
+   *     position: 'bottom-right',
+   *     scale: 15,       // 15% of the video width
+   *     opacity: 80,
+   *   },
+   * });
+   * ```
    */
   async transcode(request: TranscodeVideoRequest): Promise<TranscodeJob> {
     const response = await this.http.post<TranscodeJob>("/cdn/video/transcode", request);

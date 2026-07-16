@@ -239,6 +239,7 @@ export class Sequences {
     if (params.limit) searchParams.set("limit", params.limit.toString());
     if (params.offset) searchParams.set("offset", params.offset.toString());
     if (params.status) searchParams.set("status", params.status);
+    if (params.search) searchParams.set("search", params.search);
 
     const query = searchParams.toString();
     return this.http.get<ListSequenceEntriesResponse>(`/mail/sequences/${id}/entries${query ? `?${query}` : ""}`);
