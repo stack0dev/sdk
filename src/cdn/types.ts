@@ -207,32 +207,36 @@ export interface VideoVariant {
 /**
  * Watermark burned into a video during transcode.
  *
- * The image-watermark fields mirror the image-upload watermark config
- * ({@link ImageWatermarkConfig}), so the same settings you use to watermark photos work
- * for video — the original asset stays clean and every transcoded rendition is watermarked.
- * Set `type: "text"` to burn a text string instead of a logo.
+ * Image watermarks mirror the image-upload controls. Image and text watermarks share
+ * placement, opacity, rotation, and tiling. The original asset stays clean and every
+ * transcoded rendition is watermarked.
  */
-export interface WatermarkOptions {
-  /** "image" (default) composites a logo; "text" burns a text string. */
-  type?: "image" | "text";
-  /** Logo source: another CDN asset (image watermark). Provide `assetId` or `url`. */
-  assetId?: string;
-  /** Logo source: a direct URL (image watermark, alternative to `assetId`). */
-  url?: string;
-  /** Text to render (required when `type` is "text"). */
-  text?: string;
-  /** Font family for text watermarks. */
-  fontFamily?: string;
-  /** Font size in pixels for text watermarks. */
-  fontSize?: number;
-  /** Text color as `#RRGGBB` (text watermarks). */
-  fontColor?: string;
+interface BaseVideoWatermarkOptions {
   /** Placement on the frame (default: "bottom-right"). */
   position?: ImageWatermarkPosition;
   /** Horizontal inset from the anchored edge in pixels (default: 20). */
   offsetX?: number;
   /** Vertical inset from the anchored edge in pixels (default: 20). */
   offsetY?: number;
+  /** Opacity 0-100 (default: 80). */
+  opacity?: number;
+  /** Repeat the watermark across the whole frame (default: false). */
+  tile?: boolean;
+  /** Horizontal spacing between tiles in pixels (default: 100). */
+  tileSpacingX?: number;
+  /** Vertical spacing between tiles in pixels (default: 100). */
+  tileSpacingY?: number;
+  /** Rotation in degrees, -360 to 360 (default: 0). */
+  rotation?: number;
+}
+
+export interface ImageVideoWatermarkOptions extends BaseVideoWatermarkOptions {
+  /** Omit for backward compatibility; image is the default watermark type. */
+  type?: "image";
+  /** Logo source: another CDN asset. Provide `assetId` or `url`. */
+  assetId?: string;
+  /** Logo source: a direct URL (alternative to `assetId`). */
+  url?: string;
   /** "relative" sizes by a percentage of the video width; "absolute" uses width/height (default: "relative"). */
   sizingMode?: ImageWatermarkSizingMode;
   /** Absolute width in pixels (used when `sizingMode` is "absolute"). */
@@ -241,19 +245,23 @@ export interface WatermarkOptions {
   height?: number;
   /** Relative size as a percentage of the video width (used when `sizingMode` is "relative"; default: 15). */
   scale?: number;
-  /** Opacity 0-100 (default: 80). */
-  opacity?: number;
-  /** Tile the watermark across the whole frame, e.g. for copyright protection (default: false). */
-  tile?: boolean;
-  /** Horizontal spacing between tiles in pixels (default: 100). */
-  tileSpacingX?: number;
-  /** Vertical spacing between tiles in pixels (default: 100). */
-  tileSpacingY?: number;
-  /** Rotation in degrees, -360 to 360 (default: 0). Image watermarks only. */
-  rotation?: number;
-  /** Corner radius in pixels clipping the logo, 0-500 (default: 0). Image watermarks only. */
+  /** Corner radius in pixels clipping the logo, 0-500 (default: 0). */
   borderRadius?: number;
 }
+
+export interface TextVideoWatermarkOptions extends BaseVideoWatermarkOptions {
+  type: "text";
+  /** Text to render. */
+  text: string;
+  /** Font family (default: "Liberation Sans"). */
+  fontFamily?: string;
+  /** Font size in pixels (default: 48). */
+  fontSize?: number;
+  /** Text color as `#RRGGBB` (default: "#FFFFFF"). */
+  fontColor?: string;
+}
+
+export type WatermarkOptions = ImageVideoWatermarkOptions | TextVideoWatermarkOptions;
 
 // ============================================================================
 // Image Watermark Types
