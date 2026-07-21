@@ -336,7 +336,8 @@ export interface TranscodeJob {
   outputFormat: VideoOutputFormat;
   variants: VideoVariant[];
   progress: number | null;
-  error: string | null;
+  /** Provider or preprocessing failure details when status is `failed`. */
+  errorMessage: string | null;
   mediaConvertJobId: string | null;
   createdAt: Date;
   startedAt: Date | null;
@@ -768,6 +769,7 @@ export interface MovePrivateFilesResponse {
 export type MergeStatus = TranscodingStatus;
 export type MergeQuality = VideoQuality;
 export type MergeOutputFormat = "mp4" | "webm";
+export type MergeAspectRatio = "auto" | "16:9" | "9:16" | "1:1";
 
 /**
  * Text overlay shadow configuration
@@ -860,6 +862,13 @@ export interface MergeOutputConfig {
   format?: MergeOutputFormat;
   /** Output quality (default: 720p) */
   quality?: MergeQuality;
+  /**
+   * Output aspect ratio (default: "auto").
+   * "auto" matches the orientation of the first visual input — portrait inputs
+   * produce portrait output (e.g. 1080x1920 at 1080p), ideal for Reels/TikTok.
+   * Explicit values force the canvas; the quality sets the short edge.
+   */
+  aspectRatio?: MergeAspectRatio;
   /** Custom filename for the output */
   filename?: string;
 }
@@ -922,6 +931,7 @@ export interface MergeJob {
   audioTrackAssetId: string | null;
   outputFormat: MergeOutputFormat;
   outputQuality: MergeQuality;
+  outputAspectRatio: MergeAspectRatio;
   outputFilename: string | null;
   outputAssetId: string | null;
   status: MergeStatus;

@@ -562,6 +562,7 @@ export class CDN {
    * ```typescript
    * const job = await cdn.getJob('job-id');
    * console.log(`Status: ${job.status}, Progress: ${job.progress}%`);
+   * if (job.status === 'failed') console.error(job.errorMessage);
    * ```
    */
   async getJob(jobId: string): Promise<TranscodeJob> {
@@ -619,7 +620,7 @@ export class CDN {
    * ```
    */
   async getStreamingUrls(assetId: string): Promise<StreamingUrls> {
-    return this.http.get<StreamingUrls>(`/cdn/video/stream/${assetId}`);
+    return this.http.get<StreamingUrls>(`/cdn/video/${assetId}/stream`);
   }
 
   /**
@@ -1355,6 +1356,7 @@ export class CDN {
    *   output: {
    *     format: 'mp4',
    *     quality: '1080p',
+   *     aspectRatio: 'auto', // match first input's orientation ('9:16' forces vertical)
    *     filename: 'final-video.mp4',
    *   },
    *   webhookUrl: 'https://your-app.com/webhook',
