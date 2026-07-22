@@ -624,7 +624,12 @@ export class CDN {
   }
 
   /**
-   * Generate a thumbnail from a video at a specific timestamp
+   * Get the thumbnail at a specific timestamp, generating it on miss
+   *
+   * If no thumbnail exists at that timestamp yet, generation is queued
+   * automatically and a response with `status: "pending"` (null url) is
+   * returned. Poll until `status` is "ready", or use
+   * {@link getThumbnailAndWait} to do that for you.
    *
    * @example
    * ```typescript
@@ -634,7 +639,9 @@ export class CDN {
    *   width: 320,
    *   format: 'webp',
    * });
-   * console.log(`Thumbnail URL: ${thumbnail.url}`);
+   * if (thumbnail.status === 'ready') {
+   *   console.log(`Thumbnail URL: ${thumbnail.url}`);
+   * }
    * ```
    */
   async getThumbnail(request: ThumbnailRequest): Promise<ThumbnailResponse> {
@@ -647,19 +654,56 @@ export class CDN {
   }
 
   /**
-   * Regenerate a thumbnail for a video (force regeneration even if one exists)
+   * Get the thumbnail at a specific timestamp, waiting for generation to complete
    *
-   * Useful for retrying failed thumbnail generation or regenerating with different settings.
+   * Calls {@link getThumbnail} and polls until the thumbnail is ready.
    *
    * @example
    * ```typescript
-   * const result = await cdn.regenerateThumbnail({
+   * const thumbnail = await cdn.getThumbnailAndWait({
+   *   assetId: 'video-asset-id',
+   *   timestamp: 3.5,
+   * });
+   * console.log(`Thumbnail URL: ${thumbnail.url}`);
+   * ```
+   */
+  async getThumbnailAndWait(
+    request: ThumbnailRequest,
+    options: { pollInterval?: number; timeout?: number } = {},
+  ): Promise<ThumbnailResponse> {
+    const { pollInterval = 1000, timeout = 60000 } = options;
+    const startTime = Date.now();
+
+    while (true) {
+      const thumbnail = await this.getThumbnail(request);
+      if (thumbnail.status === "ready") {
+        return thumbnail;
+      }
+      if (Date.now() - startTime >= timeout) {
+        throw new Error("Thumbnail generation timed out");
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    }
+  }
+
+  /**
+   * Regenerate a thumbnail for a video (force regeneration even if one exists)
+   *
+   * Useful for retrying failed thumbnail generation or regenerating with
+   * different settings. Regeneration is async: poll {@link getThumbnail} (or
+   * use {@link getThumbnailAndWait}) at the same timestamp until the new
+   * frame is ready.
+   *
+   * @example
+   * ```typescript
+   * await cdn.regenerateThumbnail({
    *   assetId: 'video-asset-id',
    *   timestamp: 5, // 5 seconds into the video
    *   width: 1280,
    *   format: 'jpg',
    * });
-   * console.log(`Thumbnail regeneration queued: ${result.status}`);
+   * const thumbnail = await cdn.getThumbnailAndWait({ assetId: 'video-asset-id', timestamp: 5 });
+   * console.log(`Thumbnail URL: ${thumbnail.url}`);
    * ```
    */
   async regenerateThumbnail(request: RegenerateThumbnailRequest): Promise<RegenerateThumbnailResponse> {
@@ -1362,6 +1406,33 @@ export class CDN {
    *   webhookUrl: 'https://your-app.com/webhook',
    * });
    * console.log(`Merge job started: ${job.id}`);
+   * ```
+   *
+   * @example Composite a screen recording onto a held phone ("POV holding my phone"):
+   * ```typescript
+   * const job = await cdn.createMergeJob({
+   *   projectSlug: 'my-project',
+   *   inputs: [
+   *     { assetId: 'reaction-clip-id' },
+   *     {
+   *       assetId: 'app-recording-id', // the overlay clip
+   *       composite: {
+   *         backgroundAssetId: 'holding-phone-shot-id', // image or video
+   *         // Corner-pin onto the angled screen (background pixel coords, TL/TR/BL/BR)
+   *         quad: {
+   *           topLeft: { x: 320, y: 480 },
+   *           topRight: { x: 760, y: 500 },
+   *           bottomLeft: { x: 300, y: 1400 },
+   *           bottomRight: { x: 740, y: 1440 },
+   *         },
+   *         fit: 'cover',
+   *         // Screen area painted #F500FA in the background is keyed out, so the
+   *         // recording shows through and fingers over the screen occlude it
+   *         chromaKey: { color: '#F500FA', similarity: 0.34, blend: 0.06 },
+   *       },
+   *     },
+   *   ],
+   * });
    * ```
    */
   async createMergeJob(request: CreateMergeJobRequest): Promise<MergeJob> {

@@ -483,13 +483,16 @@ console.log(`Progress: ${status.progress}%`);
 const urls = await stack0.cdn.getStreamingUrls('asset-id');
 console.log(urls.hlsUrl);
 
-// Generate thumbnails
-const thumb = await stack0.cdn.getThumbnail({
+// Get a thumbnail at a timestamp (generated on miss; waits until ready)
+const thumb = await stack0.cdn.getThumbnailAndWait({
   assetId: 'video-asset-id',
   timestamp: 10.5,
   width: 320,
   format: 'webp',
 });
+
+// Non-blocking variant: returns { status: 'pending', url: null } while generating
+const maybe = await stack0.cdn.getThumbnail({ assetId: 'video-asset-id', timestamp: 0 });
 
 // Extract audio
 const { jobId } = await stack0.cdn.extractAudio({
@@ -533,6 +536,28 @@ const mergeJob = await stack0.cdn.createMergeJob({
   ],
   audioTrack: { assetId: 'music-id', loop: true, fadeIn: 2, fadeOut: 3 },
   output: { format: 'mp4', quality: '1080p', filename: 'final.mp4' },
+});
+
+// Composite a screen recording onto a held phone (screen keyed #F500FA):
+// the keyed background sits on top, so fingers occlude the inset recording
+const composited = await stack0.cdn.createMergeJob({
+  projectSlug: 'my-project',
+  inputs: [
+    {
+      assetId: 'app-screen-recording',
+      composite: {
+        backgroundAssetId: 'holding-phone-shot',
+        quad: {
+          topLeft: { x: 320, y: 480 },
+          topRight: { x: 760, y: 500 },
+          bottomLeft: { x: 300, y: 1400 },
+          bottomRight: { x: 740, y: 1440 },
+        },
+        fit: 'cover',
+        chromaKey: { color: '#F500FA', similarity: 0.34, blend: 0.06 },
+      },
+    },
+  ],
 });
 ```
 

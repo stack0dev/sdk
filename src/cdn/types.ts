@@ -388,10 +388,16 @@ export interface ThumbnailRequest {
 }
 
 export interface ThumbnailResponse {
-  url: string;
+  id: string | null;
+  assetId: string;
   timestamp: number;
-  width: number;
-  height: number;
+  /** CDN URL of the frame; null while status is "pending" */
+  url: string | null;
+  width: number | null;
+  height: number | null;
+  format: string;
+  /** "ready" when the frame exists; "pending" while generation is queued/in flight */
+  status: "ready" | "pending";
 }
 
 export interface RegenerateThumbnailRequest {
@@ -830,6 +836,68 @@ export interface TextOverlay {
   stroke?: TextOverlayStroke;
 }
 
+/** A point in background pixel coordinates */
+export interface CompositePoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * Perspective destination quad: where the overlay's four corners land on the
+ * background, in background pixels. Use for corner-pinning a clip onto an
+ * angled surface like a phone screen in a held-phone shot.
+ */
+export interface CompositeQuad {
+  topLeft: CompositePoint;
+  topRight: CompositePoint;
+  bottomLeft: CompositePoint;
+  bottomRight: CompositePoint;
+}
+
+/** Axis-aligned destination rectangle in background pixels (no perspective) */
+export interface CompositeRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Chroma key applied to the background: the keyed color becomes transparent so
+ * the overlay shows through only there, and real foreground (fingers, hands)
+ * occludes the overlay.
+ */
+export interface CompositeChromaKey {
+  /** Key color in hex format (e.g., "#F500FA") */
+  color: string;
+  /** Color distance tolerance 0.01-1 (default: 0.3) */
+  similarity?: number;
+  /** Edge blend 0-1 (default: 0.1) */
+  blend?: number;
+}
+
+/**
+ * Composite configuration: place this input (the overlay) into a region of a
+ * background asset. The background can be an image or video. The keyed or
+ * masked background is layered on top of the placed overlay, so foreground in
+ * the background shot occludes the inset — ideal for "POV holding my phone"
+ * style UGC where an app recording is pinned onto the phone's (keyed) screen.
+ */
+export interface CompositeConfig {
+  /** Asset ID of the background image or video */
+  backgroundAssetId: string;
+  /** Perspective corner-pin destination (requires chromaKey or maskAssetId) */
+  quad?: CompositeQuad;
+  /** Axis-aligned destination rectangle (simple PiP when no key/mask) */
+  rect?: CompositeRect;
+  /** How the overlay fills the destination region's aspect ratio (default: "cover") */
+  fit?: "cover" | "contain" | "fill";
+  /** Chroma key applied to the background */
+  chromaKey?: CompositeChromaKey;
+  /** Grayscale mask image asset: white keeps the background, black reveals the overlay */
+  maskAssetId?: string;
+}
+
 /**
  * A single input item for the merge operation.
  * Can be a video, image, or audio file.
@@ -845,6 +913,8 @@ export interface MergeInputItem {
   endTime?: number;
   /** Text overlay/caption configuration */
   textOverlay?: TextOverlay;
+  /** Composite this input into a region of a background asset */
+  composite?: CompositeConfig;
 }
 
 /**
