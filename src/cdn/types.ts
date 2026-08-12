@@ -202,6 +202,16 @@ export interface VideoVariant {
   quality: VideoQuality;
   codec?: VideoCodec;
   bitrate?: number;
+  /**
+   * Bytes actually written to storage for this rendition, measured after the job completes.
+   * For HLS this covers the variant playlist and its segments; for MP4, the single file.
+   *
+   * Response-only — ignored if you set it on a transcode request.
+   *
+   * Undefined means not measured (job still running, job predates measurement, or the
+   * measurement failed), never zero. `bitrate * duration` is an estimate; this is not.
+   */
+  sizeBytes?: number;
 }
 
 /**
@@ -347,6 +357,13 @@ export interface TranscodeJob {
   /** Provider or preprocessing failure details when status is `failed`. */
   errorMessage: string | null;
   mediaConvertJobId: string | null;
+  /**
+   * Every byte this job wrote: renditions, HLS segments, and manifests together, since
+   * storage is billed per object rather than for the media alone.
+   *
+   * Null until the job completes, and null if the measurement failed. Not zero.
+   */
+  totalOutputBytes: number | null;
   createdAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;
@@ -689,6 +706,45 @@ export interface CdnStorageBreakdownResponse {
     sizeBytes: number;
     sizeFormatted: string;
   };
+}
+
+export interface CdnStorageUsageRequest {
+  projectSlug?: string;
+  environment?: CdnEnvironment;
+  /**
+   * Virtual folder path to scope the total to, e.g. "/customers/acme". The folder itself and
+   * everything nested under it are counted. Omit to total the whole project or organization.
+   */
+  folder?: string;
+}
+
+export interface CdnStorageUsageBucket {
+  bytes: number;
+  bytesFormatted: string;
+  objectCount: number;
+}
+
+export interface CdnStorageUsageResponse {
+  /** Uploads plus every measured derived object stored under the scope. */
+  totalBytes: number;
+  totalFormatted: string;
+  /** Objects behind that total. Storage is billed per object, so segments and manifests count. */
+  objectCount: number;
+  /** Split by asset type; a video's renditions count as video. */
+  byType: Record<string, CdnStorageUsageBucket>;
+  breakdown: {
+    /** The uploaded files themselves. */
+    originals: CdnStorageUsageBucket;
+    /** Renditions, HLS segments and manifests, thumbnails, GIFs. */
+    derived: CdnStorageUsageBucket;
+  };
+  /**
+   * Assets known to have derivatives whose bytes have not been measured yet. Their storage is
+   * missing from `totalBytes`, so a nonzero count means the total is a floor, not the answer.
+   */
+  unmeasuredAssets: number;
+  /** The folder the total covers, or null when the whole project or org was counted. */
+  folder: string | null;
 }
 
 // ============================================================================

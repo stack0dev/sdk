@@ -58,6 +58,8 @@ import type {
   CdnUsageDataPoint,
   CdnStorageBreakdownRequest,
   CdnStorageBreakdownResponse,
+  CdnStorageUsageRequest,
+  CdnStorageUsageResponse,
   // Additional Folder Types
   UpdateFolderRequest,
   ListFoldersRequest,
@@ -1215,6 +1217,38 @@ export class CDN {
 
     const query = params.toString();
     return this.http.get<CdnStorageBreakdownResponse>(`/cdn/usage/storage-breakdown${query ? `?${query}` : ""}`);
+  }
+
+  /**
+   * Get total stored bytes for a project or folder, derived assets included.
+   *
+   * Totals uploads plus everything the pipelines derived from them — video renditions, HLS
+   * segments and manifests, thumbnails, GIFs — in one call. Use this to meter a plan limit:
+   * paging `list()` and summing `size` counts uploads only, and an HLS ladder typically runs
+   * well past the size of the source it came from.
+   *
+   * Check `unmeasuredAssets`. A nonzero value means some assets have derivatives whose bytes
+   * have not been measured, so `totalBytes` is a floor rather than the full number.
+   *
+   * @example
+   * ```typescript
+   * const usage = await cdn.getStorageUsage({
+   *   projectSlug: 'my-project',
+   *   folder: '/customers/acme',
+   * });
+   * console.log(`${usage.totalFormatted} across ${usage.objectCount} objects`);
+   * console.log(`  uploads:  ${usage.breakdown.originals.bytesFormatted}`);
+   * console.log(`  derived:  ${usage.breakdown.derived.bytesFormatted}`);
+   * ```
+   */
+  async getStorageUsage(request: CdnStorageUsageRequest = {}): Promise<CdnStorageUsageResponse> {
+    const params = new URLSearchParams();
+    if (request.projectSlug) params.set("projectSlug", request.projectSlug);
+    if (request.environment) params.set("environment", request.environment);
+    if (request.folder) params.set("folder", request.folder);
+
+    const query = params.toString();
+    return this.http.get<CdnStorageUsageResponse>(`/cdn/usage/storage${query ? `?${query}` : ""}`);
   }
 
   private convertUsageDates(usage: CdnUsageResponse): CdnUsageResponse {
