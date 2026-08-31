@@ -1103,6 +1103,119 @@ export interface ListMergeJobsResponse {
 }
 
 // ============================================================================
+// Video Render Types
+// ============================================================================
+
+export type RenderStatus = TranscodingStatus;
+export type RenderOutputFormat = "mp4" | "webm";
+
+/**
+ * The declarative video spec.
+ *
+ * Typed loosely on purpose. The authoritative schema lives in
+ * `@stack0/video-spec`, which also ships worked examples and the timing engine;
+ * restating its shape here would create a second description of one contract
+ * that silently drifts. Install that package for full types and validation:
+ *
+ * ```typescript
+ * import { validateSpec, prankWithDemoExample } from '@stack0/video-spec'
+ * ```
+ */
+export type VideoSpec = Record<string, unknown>;
+
+/**
+ * How the finished video is encoded.
+ *
+ * There is no quality or aspect ratio here: the spec's canvas declares width,
+ * height and fps, so scale is the only encode-side lever left.
+ */
+export interface RenderOutputConfig {
+  /** Container and codec: mp4/h264 or webm/vp8 (default: mp4) */
+  format?: RenderOutputFormat;
+  /** Multiplier on the spec's canvas, 0.1-4 (default: 1). Cost scales with the square of this. */
+  scale?: number;
+  /** Custom filename for the output */
+  filename?: string;
+}
+
+/**
+ * Request to render a video spec
+ */
+export interface CreateRenderJobRequest {
+  /** Project slug to create the render job in */
+  projectSlug: string;
+  /** The video spec: scenes, layers, timing and media. Data, not code. */
+  spec: VideoSpec;
+  /** Output configuration */
+  output?: RenderOutputConfig;
+  /** Webhook URL for completion notification */
+  webhookUrl?: string;
+}
+
+/**
+ * Request to list render jobs
+ */
+export interface ListRenderJobsRequest {
+  projectSlug: string;
+  /** Filter by status */
+  status?: RenderStatus;
+  /** Maximum number of results (default: 20, max: 100) */
+  limit?: number;
+  /** Offset for pagination */
+  offset?: number;
+}
+
+/**
+ * Render job response
+ */
+export interface RenderJob {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  environment: "sandbox" | "production";
+  /** The submitted spec, with media references resolved to URLs */
+  spec: VideoSpec;
+  outputFormat: RenderOutputFormat;
+  outputScale: number;
+  outputFilename: string | null;
+  outputAssetId: string | null;
+  status: RenderStatus;
+  progress: number | null;
+  errorMessage: string | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  /** Resolved from the spec at submission, before a single frame renders */
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  durationInFrames: number | null;
+  outputDurationSeconds: number | null;
+  webhookUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
+/**
+ * Render job with output asset details
+ */
+export interface RenderJobWithOutput extends RenderJob {
+  outputAsset: {
+    id: string;
+    cdnUrl: string;
+    directUrl: string;
+    filename: string;
+    size: number;
+    duration: number | null;
+  } | null;
+}
+
+export interface ListRenderJobsResponse {
+  jobs: RenderJob[];
+  total: number;
+  hasMore: boolean;
+}
+
+// ============================================================================
 // S3 Import Types
 // ============================================================================
 

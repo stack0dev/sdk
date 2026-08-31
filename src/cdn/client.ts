@@ -76,6 +76,12 @@ import type {
   MergeJobWithOutput,
   ListMergeJobsRequest,
   ListMergeJobsResponse,
+  // Video Render Types
+  CreateRenderJobRequest,
+  RenderJob,
+  RenderJobWithOutput,
+  ListRenderJobsRequest,
+  ListRenderJobsResponse,
   // GIF Generation Types
   GenerateGifRequest,
   VideoGif,
@@ -1547,6 +1553,119 @@ export class CDN {
 
   private convertMergeJobWithOutputDates(job: MergeJobWithOutput): MergeJobWithOutput {
     return this.convertMergeJobDates(job) as MergeJobWithOutput;
+  }
+
+  // ============================================================================
+  // Video Render Methods
+  // ============================================================================
+
+  /**
+   * Render a declarative video spec into a video asset
+   *
+   * The spec describes scenes, layers, timing and media as data. There are no
+   * compositions to write and no code to upload — Stack0 owns the renderer.
+   *
+   * `@stack0/video-spec` has the full types, validation and worked examples;
+   * validating locally before you POST turns a round trip into a type error.
+   *
+   * @example
+   * ```typescript
+   * const job = await cdn.createRenderJob({
+   *   projectSlug: 'my-project',
+   *   spec: {
+   *     canvas: { width: 1080, height: 1920, fps: 30 },
+   *     audio: [{ src: musicAssetId, volume: 0.34 }],
+   *     scenes: [
+   *       {
+   *         id: 'hook',
+   *         duration: 2.5,
+   *         layers: [
+   *           { type: 'image', src: afterImageAssetId, zoom: { from: 1, to: 1.06 } },
+   *           { type: 'caption', text: 'i told my mom\nthe kitchen exploded', position: 'upperThird' },
+   *         ],
+   *       },
+   *       {
+   *         // No duration: the thread derives its own length from the messages
+   *         id: 'payoff',
+   *         layers: [
+   *           {
+   *             type: 'messageThread',
+   *             recipient: 'Mom',
+   *             imageSrc: afterImageAssetId,
+   *             messages: [
+   *               { sender: 'recipient', text: 'you home?', history: true },
+   *               { sender: 'user', text: '[IMAGE]' },
+   *               { sender: 'recipient', text: 'WHAT IS THAT' },
+   *             ],
+   *           },
+   *         ],
+   *       },
+   *     ],
+   *   },
+   *   webhookUrl: 'https://your-app.com/webhook',
+   * });
+   * console.log(job.durationInFrames); // known before rendering starts
+   * ```
+   */
+  async createRenderJob(request: CreateRenderJobRequest): Promise<RenderJob> {
+    const response = await this.http.post<RenderJob>("/cdn/video/render", request);
+    return this.convertRenderJobDates(response);
+  }
+
+  /**
+   * Get a render job by ID with output asset details
+   *
+   * @example
+   * ```typescript
+   * const job = await cdn.getRenderJob('job-id');
+   * if (job.status === 'completed' && job.outputAsset) {
+   *   console.log(`Output video: ${job.outputAsset.cdnUrl}`);
+   * }
+   * ```
+   */
+  async getRenderJob(jobId: string): Promise<RenderJobWithOutput> {
+    const response = await this.http.get<RenderJobWithOutput>(`/cdn/video/render/${jobId}`);
+    return this.convertRenderJobDates(response) as RenderJobWithOutput;
+  }
+
+  /**
+   * List render jobs with optional filters
+   */
+  async listRenderJobs(request: ListRenderJobsRequest): Promise<ListRenderJobsResponse> {
+    const params = new URLSearchParams();
+    params.set("projectSlug", request.projectSlug);
+    if (request.status) params.set("status", request.status);
+    if (request.limit) params.set("limit", request.limit.toString());
+    if (request.offset) params.set("offset", request.offset.toString());
+
+    const response = await this.http.get<ListRenderJobsResponse>(`/cdn/video/render?${params.toString()}`);
+    return {
+      ...response,
+      jobs: response.jobs.map((job) => this.convertRenderJobDates(job)),
+    };
+  }
+
+  /**
+   * Cancel a pending or processing render job
+   */
+  async cancelRenderJob(jobId: string): Promise<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(`/cdn/video/render/${jobId}/cancel`, {});
+  }
+
+  private convertRenderJobDates<T extends RenderJob>(job: T): T {
+    if (typeof job.createdAt === "string") {
+      job.createdAt = new Date(job.createdAt);
+    }
+    if (job.updatedAt && typeof job.updatedAt === "string") {
+      job.updatedAt = new Date(job.updatedAt);
+    }
+    if (job.startedAt && typeof job.startedAt === "string") {
+      job.startedAt = new Date(job.startedAt);
+    }
+    if (job.completedAt && typeof job.completedAt === "string") {
+      job.completedAt = new Date(job.completedAt);
+    }
+    return job;
   }
 
   // ============================================================================
