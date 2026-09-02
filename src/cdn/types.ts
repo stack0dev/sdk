@@ -647,6 +647,14 @@ export interface CdnUsageRequest {
   environment?: CdnEnvironment;
   periodStart?: Date | string;
   periodEnd?: Date | string;
+  /**
+   * Virtual folder path to scope the stats to, e.g. "/customers/acme". Covers the folder
+   * itself and everything nested under it — the same scoping as `getStorageUsage`. Use
+   * this to meter bandwidth per tenant when each tenant uploads under its own folder.
+   * Folder-scoped stats only cover assets that still exist; deleting an asset removes
+   * its serving history, so a period total can shrink.
+   */
+  folder?: string;
 }
 
 export interface CdnUsageResponse {
@@ -660,6 +668,12 @@ export interface CdnUsageResponse {
   storageFormatted: string;
   estimatedCostCents: number;
   estimatedCostFormatted: string;
+  /**
+   * Echoes the folder the stats cover, null when the whole project or org was counted.
+   * When metering a tenant, check this echo — a server that predates folder scoping
+   * ignores the parameter and silently returns org-wide numbers.
+   */
+  folder: string | null;
 }
 
 export interface CdnUsageHistoryRequest {

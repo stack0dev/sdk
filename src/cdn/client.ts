@@ -1159,6 +1159,7 @@ export class CDN {
     const params = new URLSearchParams();
     if (request.projectSlug) params.set("projectSlug", request.projectSlug);
     if (request.environment) params.set("environment", request.environment);
+    if (request.folder) params.set("folder", request.folder);
     if (request.periodStart) {
       const date = request.periodStart instanceof Date ? request.periodStart.toISOString() : request.periodStart;
       params.set("periodStart", date);
