@@ -55,6 +55,11 @@
       "types": "./dist/memory/index.d.ts",
       "require": "./dist/memory/index.js",
       "import": "./dist/memory/index.mjs"
+    },
+    "./feedback": {
+      "types": "./dist/feedback/index.d.ts",
+      "require": "./dist/feedback/index.js",
+      "import": "./dist/feedback/index.mjs"
     }
   },
   "files": [

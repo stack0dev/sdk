@@ -2,6 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: {
+    "feedback/index": "src/feedback/index.ts",
     index: "src/index.ts",
     "mail/index": "src/mail/index.ts",
     "cdn/index": "src/cdn/index.ts",
