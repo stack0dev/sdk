@@ -220,6 +220,3 @@ export { Webdata } from "./webdata/client";
 
 // Default export
 export default Stack0;
-
-export { Feedback } from "./feedback/client";
-export type * from "./feedback/types";
