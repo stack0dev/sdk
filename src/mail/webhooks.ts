@@ -8,7 +8,11 @@
  * Node 18+, Bun, Deno, and edge runtimes.
  */
 
+import type { webcrypto } from "node:crypto";
 import type { InboundWebhookPayload } from "./types";
+
+// Type-only (erased at build): the Web Crypto types without the DOM lib.
+type SubtleCrypto = webcrypto.SubtleCrypto;
 
 export class WebhookVerificationError extends Error {
   constructor(message: string) {
@@ -60,12 +64,12 @@ function bytesToBase64(bytes: Uint8Array): string {
  * edge), else Node's `webcrypto` (Node 18 has no global without a flag).
  */
 async function subtle(): Promise<SubtleCrypto> {
-  const global = (globalThis as { crypto?: Crypto }).crypto;
+  const global = (globalThis as { crypto?: { subtle?: SubtleCrypto } }).crypto;
   if (global?.subtle) return global.subtle;
   // A variable specifier keeps bundlers from pulling node:crypto into edge and
   // browser builds, which have the global and never reach this line.
   const specifier = "node:crypto";
-  const nodeCrypto = (await import(/* webpackIgnore: true */ /* @vite-ignore */ specifier)) as { webcrypto: Crypto };
+  const nodeCrypto = (await import(/* webpackIgnore: true */ /* @vite-ignore */ specifier)) as typeof import("node:crypto");
   return nodeCrypto.webcrypto.subtle;
 }
 
