@@ -1108,6 +1108,16 @@ export interface Mailbox {
   updatedAt?: Date | string;
 }
 
+/** A mailbox as `create` returns it, with its webhook signing secret. Store the secret: only `create` and `rotateSecret` return it. */
+export interface MailboxWithSecret extends Mailbox {
+  webhookSecret: string;
+}
+
+export interface RotateMailboxSecretResponse {
+  id: string;
+  webhookSecret: string;
+}
+
 export interface CreateMailboxRequest {
   projectSlug?: string;
   environment?: Environment;
@@ -1152,13 +1162,20 @@ export interface InboundAttachment {
   filename: string;
   contentType: string;
   size: number;
-  url?: string;
+  /** Presigned GET URL, valid until `expiresAt` (one hour after the webhook attempt or API read). Null when the attachment could not be signed. */
+  url: string | null;
+  expiresAt: string | null;
 }
+
+/** Headers of an inbound email: lowercased name to value, or to every value of a repeated header (Received). */
+export type InboundHeaders = Record<string, string | string[]>;
 
 export interface InboundMessage {
   id: string;
   mailboxId: string;
   mailbox: string;
+  /** The part after "+" when the email came to `local+tag@domain` and routed to the mailbox `local@domain`. */
+  tag: string | null;
   messageId?: string;
   inReplyTo?: string;
   references?: string;
@@ -1170,9 +1187,12 @@ export interface InboundMessage {
   subject?: string;
   html?: string;
   text?: string;
+  headers: InboundHeaders;
   attachments?: InboundAttachment[];
   webhookDelivered: boolean;
   webhookAttempts: number;
+  /** Why the last delivery failed, or `DAILY_LIMIT_REACHED: ...` when the message arrived over `maxInboundPerDay` and was not delivered. */
+  webhookLastError: string | null;
   createdAt: Date | string;
 }
 
@@ -1188,10 +1208,18 @@ export interface ListInboundMessagesResponse {
   nextCursor?: string;
 }
 
+/**
+ * The body of an `email.inbound` webhook. Verify it with `verifyInboundWebhook`
+ * before trusting it. `id` is the same on every retry of one message
+ * (and equals the `webhook-id` header), so deduplicate on it.
+ */
 export interface InboundWebhookPayload {
+  id: string;
   event: "email.inbound";
   mailbox: string;
   mailboxId: string;
+  /** The part after "+" when the email came to `local+tag@domain` and routed to the mailbox `local@domain`. */
+  tag: string | null;
   from: InboundEmailAddress;
   to: string;
   // CC/BCC recipients from the original message. Delivered as arrays (the stored
@@ -1207,6 +1235,7 @@ export interface InboundWebhookPayload {
   messageId?: string;
   inReplyTo?: string;
   references?: string[];
+  headers: InboundHeaders;
   attachments?: InboundAttachment[];
   metadata?: Record<string, unknown>;
   receivedAt: string;

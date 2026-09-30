@@ -5,6 +5,8 @@
 import type { HttpClient } from "../lib/http-client";
 import type {
   Mailbox,
+  MailboxWithSecret,
+  RotateMailboxSecretResponse,
   CreateMailboxRequest,
   UpdateMailboxRequest,
   ListMailboxesRequest,
@@ -18,10 +20,19 @@ export class Mailboxes {
   constructor(private http: HttpClient) {}
 
   /**
-   * Create a new mailbox
+   * Create a new mailbox. The result carries `webhookSecret`, which signs every
+   * inbound delivery; store it now (only `create` and `rotateSecret` return it).
    */
-  async create(request: CreateMailboxRequest): Promise<Mailbox> {
-    return this.http.post<Mailbox>("/mail/mailboxes", request);
+  async create(request: CreateMailboxRequest): Promise<MailboxWithSecret> {
+    return this.http.post<MailboxWithSecret>("/mail/mailboxes", request);
+  }
+
+  /**
+   * Replace a mailbox's webhook secret and return the new one. Deliveries are
+   * signed with the new secret from then on.
+   */
+  async rotateSecret(id: string): Promise<RotateMailboxSecretResponse> {
+    return this.http.post<RotateMailboxSecretResponse>(`/mail/mailboxes/${id}/rotate-secret`, {});
   }
 
   /**

@@ -14,6 +14,8 @@ export { Contacts } from "./contacts";
 export { Domains } from "./domains";
 export { Events } from "./events";
 export { Mailboxes } from "./mailboxes";
+export { verifyInboundWebhook, WebhookVerificationError } from "./webhooks";
+export type { VerifyInboundWebhookOptions } from "./webhooks";
 export { Sequences } from "./sequences";
 export { Templates } from "./templates";
 
@@ -161,6 +163,9 @@ export type {
   EventAnalyticsResponse,
   // Mailbox types
   Mailbox,
+  MailboxWithSecret,
+  RotateMailboxSecretResponse,
+  InboundHeaders,
   CreateMailboxRequest,
   UpdateMailboxRequest,
   ListMailboxesRequest,
