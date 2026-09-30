@@ -55,6 +55,17 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
+/**
+ * Web Crypto: the global where the runtime has one (Node 19+, Bun, Deno,
+ * edge), else Node's `webcrypto` (Node 18 has no global without a flag).
+ */
+async function subtle(): Promise<SubtleCrypto> {
+  const global = (globalThis as { crypto?: Crypto }).crypto;
+  if (global?.subtle) return global.subtle;
+  const nodeCrypto = (await import("node:crypto")) as unknown as { webcrypto: Crypto };
+  return nodeCrypto.webcrypto.subtle;
+}
+
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -96,7 +107,8 @@ export async function verifyInboundWebhook(options: VerifyInboundWebhookOptions)
       ? options.payload
       : new TextDecoder().decode(options.payload instanceof ArrayBuffer ? new Uint8Array(options.payload) : options.payload);
   const secret = options.secret.startsWith("whsec_") ? options.secret.slice(6) : options.secret;
-  const key = await crypto.subtle.importKey(
+  const webcrypto = await subtle();
+  const key = await webcrypto.importKey(
     "raw",
     base64ToBytes(secret),
     { name: "HMAC", hash: "SHA-256" },
@@ -104,7 +116,7 @@ export async function verifyInboundWebhook(options: VerifyInboundWebhookOptions)
     ["sign"],
   );
   const mac = new Uint8Array(
-    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${id}.${seconds}.${body}`)),
+    await webcrypto.sign("HMAC", key, new TextEncoder().encode(`${id}.${seconds}.${body}`)),
   );
   const expected = bytesToBase64(mac);
 
