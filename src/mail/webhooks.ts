@@ -62,7 +62,10 @@ function bytesToBase64(bytes: Uint8Array): string {
 async function subtle(): Promise<SubtleCrypto> {
   const global = (globalThis as { crypto?: Crypto }).crypto;
   if (global?.subtle) return global.subtle;
-  const nodeCrypto = (await import("node:crypto")) as unknown as { webcrypto: Crypto };
+  // A variable specifier keeps bundlers from pulling node:crypto into edge and
+  // browser builds, which have the global and never reach this line.
+  const specifier = "node:crypto";
+  const nodeCrypto = (await import(/* webpackIgnore: true */ /* @vite-ignore */ specifier)) as { webcrypto: Crypto };
   return nodeCrypto.webcrypto.subtle;
 }
 
