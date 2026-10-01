@@ -115,7 +115,11 @@ export class Mail {
     body: ReplyBody & Partial<SendEmailRequest>,
   ): Promise<SendEmailResponse> {
     const parentId = inbound.messageId;
-    const refs = [...(inbound.references ?? []), parentId].filter(Boolean) as string[];
+    // An array from the webhook and from listMessages; a raw header string
+    // from data stored before both were arrays.
+    const prior: unknown = inbound.references;
+    const priorIds = typeof prior === "string" ? prior.split(/\s+/) : Array.isArray(prior) ? prior : [];
+    const refs = [...priorIds, parentId].filter(Boolean) as string[];
     const subject = body.subject ?? (inbound.subject?.startsWith("Re:") ? inbound.subject : `Re: ${inbound.subject ?? ""}`);
 
     const request: SendEmailRequest = {

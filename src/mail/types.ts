@@ -1178,7 +1178,8 @@ export interface InboundMessage {
   tag: string | null;
   messageId?: string;
   inReplyTo?: string;
-  references?: string;
+  /** The References header's message ids, oldest first (as in the webhook payload). */
+  references?: string[];
   from: InboundEmailAddress;
   to: string;
   cc?: string[];
