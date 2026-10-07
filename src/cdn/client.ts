@@ -82,6 +82,16 @@ import type {
   RenderJobWithOutput,
   ListRenderJobsRequest,
   ListRenderJobsResponse,
+  // Video Analysis Types
+  CreateVideoAnalysisRequest,
+  VideoAnalysisJob,
+  ListVideoAnalysesRequest,
+  ListVideoAnalysesResponse,
+  // Multipart Upload Types
+  CreateMultipartUploadRequest,
+  CreateMultipartUploadResponse,
+  CompleteMultipartUploadRequest,
+  AbortMultipartUploadRequest,
   // GIF Generation Types
   GenerateGifRequest,
   VideoGif,
@@ -153,6 +163,59 @@ export class CDN {
   async confirmUpload(assetId: string): Promise<Asset> {
     const response = await this.http.post<Asset>(`/cdn/upload/${assetId}/confirm`, {});
     return this.convertAssetDates(response);
+  }
+
+  /**
+   * Start a multipart upload for a large file.
+   *
+   * Send each part (bytes `(partNumber - 1) * partSize` up to `partNumber * partSize`)
+   * with a PUT to its URL, keep the `ETag` response header, then call
+   * `completeMultipartUpload`. Call `abortMultipartUpload` to give up.
+   *
+   * @example
+   * ```typescript
+   * const upload = await cdn.createMultipartUpload({
+   *   projectSlug: 'my-project',
+   *   filename: 'clip.mov',
+   *   mimeType: 'video/quicktime',
+   *   size: file.size,
+   * });
+   *
+   * const parts = [];
+   * for (const part of upload.parts) {
+   *   const start = (part.partNumber - 1) * upload.partSize;
+   *   const res = await fetch(part.url, { method: 'PUT', body: file.slice(start, start + upload.partSize) });
+   *   parts.push({ partNumber: part.partNumber, etag: res.headers.get('ETag')! });
+   * }
+   *
+   * const asset = await cdn.completeMultipartUpload({ assetId: upload.assetId, uploadId: upload.uploadId, parts });
+   * ```
+   */
+  async createMultipartUpload(request: CreateMultipartUploadRequest): Promise<CreateMultipartUploadResponse> {
+    const response = await this.http.post<CreateMultipartUploadResponse>("/cdn/upload/multipart", request);
+
+    if (typeof response.expiresAt === "string") {
+      response.expiresAt = new Date(response.expiresAt);
+    }
+
+    return response;
+  }
+
+  /**
+   * Complete a multipart upload. The asset then goes through normal upload processing.
+   */
+  async completeMultipartUpload(request: CompleteMultipartUploadRequest): Promise<Asset> {
+    const { assetId, ...body } = request;
+    const response = await this.http.post<Asset>(`/cdn/upload/multipart/${assetId}/complete`, body);
+    return this.convertAssetDates(response);
+  }
+
+  /**
+   * Abort a multipart upload. The uploaded parts are discarded and the pending asset is deleted.
+   */
+  async abortMultipartUpload(request: AbortMultipartUploadRequest): Promise<{ success: boolean }> {
+    const { assetId, ...body } = request;
+    return this.http.post<{ success: boolean }>(`/cdn/upload/multipart/${assetId}/abort`, body);
   }
 
   /**
@@ -1654,6 +1717,71 @@ export class CDN {
   }
 
   private convertRenderJobDates<T extends RenderJob>(job: T): T {
+    if (typeof job.createdAt === "string") {
+      job.createdAt = new Date(job.createdAt);
+    }
+    if (job.updatedAt && typeof job.updatedAt === "string") {
+      job.updatedAt = new Date(job.updatedAt);
+    }
+    if (job.startedAt && typeof job.startedAt === "string") {
+      job.startedAt = new Date(job.startedAt);
+    }
+    if (job.completedAt && typeof job.completedAt === "string") {
+      job.completedAt = new Date(job.completedAt);
+    }
+    return job;
+  }
+
+  // ============================================================================
+  // Video Analysis Methods
+  // ============================================================================
+
+  /**
+   * Analyse a video asset: probe facts, scene cuts, JPEG frame sheets and a mono 16 kHz
+   * MP3 audio track. Poll `getVideoAnalysis` or pass a `webhookUrl` for the result.
+   *
+   * @example
+   * ```typescript
+   * const job = await cdn.createVideoAnalysis({ assetId: 'video-asset-id', frameIntervalSeconds: 0.5 });
+   *
+   * const done = await cdn.getVideoAnalysis(job.id);
+   * if (done.status === 'completed') {
+   *   console.log(done.result?.cuts); // [{ time: 3.0, score: 0.55 }, ...]
+   * }
+   * ```
+   */
+  async createVideoAnalysis(request: CreateVideoAnalysisRequest): Promise<VideoAnalysisJob> {
+    const response = await this.http.post<VideoAnalysisJob>("/cdn/video/analyze", request);
+    return this.convertAnalysisJobDates(response);
+  }
+
+  /**
+   * Get a video analysis job, including its result when it is complete
+   */
+  async getVideoAnalysis(jobId: string): Promise<VideoAnalysisJob> {
+    const response = await this.http.get<VideoAnalysisJob>(`/cdn/video/analyze/${jobId}`);
+    return this.convertAnalysisJobDates(response);
+  }
+
+  /**
+   * List video analysis jobs in a project
+   */
+  async listVideoAnalyses(request: ListVideoAnalysesRequest): Promise<ListVideoAnalysesResponse> {
+    const params = new URLSearchParams();
+    params.set("projectSlug", request.projectSlug);
+    if (request.assetId) params.set("assetId", request.assetId);
+    if (request.status) params.set("status", request.status);
+    if (request.limit) params.set("limit", request.limit.toString());
+    if (request.offset) params.set("offset", request.offset.toString());
+
+    const response = await this.http.get<ListVideoAnalysesResponse>(`/cdn/video/analyze?${params.toString()}`);
+    return {
+      ...response,
+      jobs: response.jobs.map((job) => this.convertAnalysisJobDates(job)),
+    };
+  }
+
+  private convertAnalysisJobDates(job: VideoAnalysisJob): VideoAnalysisJob {
     if (typeof job.createdAt === "string") {
       job.createdAt = new Date(job.createdAt);
     }

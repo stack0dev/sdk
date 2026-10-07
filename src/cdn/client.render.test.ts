@@ -49,6 +49,7 @@ const jobResponse = {
   outputFormat: "mp4",
   outputScale: 1,
   outputFilename: null,
+  outputLoudness: null,
   outputAssetId: null,
   status: "pending",
   progress: 0,
@@ -133,6 +134,18 @@ describe("CDN render methods", () => {
     expect(job.height).toBe(1920);
     expect(job.fps).toBe(30);
     expect(job.durationInFrames).toBe(313);
+  });
+
+  test("sends a loudness target in the output options", async () => {
+    responses = [{ ...jobResponse, outputLoudness: { integrated: -14, truePeak: -1 } }];
+    const job = await cdn.createRenderJob({
+      projectSlug: "my-project",
+      spec: SPEC,
+      output: { format: "mp4", loudness: { integrated: -14 } },
+    });
+
+    expect((requests[0]!.body as { output: unknown }).output).toEqual({ format: "mp4", loudness: { integrated: -14 } });
+    expect(job.outputLoudness).toEqual({ integrated: -14, truePeak: -1 });
   });
 
   test("sends a webhook URL when one is given", async () => {

@@ -1150,6 +1150,19 @@ export interface RenderOutputConfig {
   scale?: number;
   /** Custom filename for the output */
   filename?: string;
+  /**
+   * Normalize the soundtrack after the render (EBU R128, two-pass). The video stream is
+   * copied untouched; the audio is re-encoded (AAC 192k 48 kHz for mp4, Opus for webm).
+   * A render with no audio is left as is.
+   */
+  loudness?: RenderLoudness;
+}
+
+export interface RenderLoudness {
+  /** Integrated loudness target in LUFS, -24 to -8. Social platforms play at about -14. */
+  integrated: number;
+  /** True peak ceiling in dBTP, -3 to 0 (default: -1) */
+  truePeak?: number;
 }
 
 /**
@@ -1192,6 +1205,8 @@ export interface RenderJob {
   outputFormat: RenderOutputFormat;
   outputScale: number;
   outputFilename: string | null;
+  /** The loudness target the soundtrack was normalized to, or null */
+  outputLoudness: { integrated: number; truePeak: number } | null;
   outputAssetId: string | null;
   status: RenderStatus;
   progress: number | null;
@@ -1227,6 +1242,184 @@ export interface ListRenderJobsResponse {
   jobs: RenderJob[];
   total: number;
   hasMore: boolean;
+}
+
+// ============================================================================
+// Video Analysis Types
+// ============================================================================
+
+export type VideoAnalysisStatus = TranscodingStatus;
+
+/**
+ * Request to analyse a video or audio asset
+ */
+export interface CreateVideoAnalysisRequest {
+  /** Project slug. When omitted, the job runs in the asset's own project. */
+  projectSlug?: string;
+  /** The video or audio asset to analyse. For audio, the frame options have no effect. */
+  assetId: string;
+  /** Seconds between sampled frames, 0.25-10 (default: 1) */
+  frameIntervalSeconds?: number;
+  /** Width of each frame cell in pixels, 160-640 (default: 320) */
+  frameWidth?: number;
+  /** Scene-change score that counts as a cut, 0.1-0.9 (default: 0.3) */
+  sceneThreshold?: number;
+  /** Extract a mono 16 kHz MP3 when the video has audio (default: true). Ignored for audio assets. */
+  extractAudio?: boolean;
+  /** Analyse beats, kicks, the drop and loudness of the soundtrack (default: false) */
+  beats?: boolean;
+  /** Known tempo, 40-220. Fixes the beat period; only the phase is searched. */
+  expectedBpm?: number;
+  /** Seconds into the track near the drop. The drop is searched within 1.5 s of it. */
+  dropHint?: number;
+  /** Webhook URL for completion notification */
+  webhookUrl?: string;
+}
+
+/**
+ * Request to list video analysis jobs
+ */
+export interface ListVideoAnalysesRequest {
+  projectSlug: string;
+  /** Only jobs for this asset */
+  assetId?: string;
+  /** Filter by status */
+  status?: VideoAnalysisStatus;
+  /** Maximum number of results (default: 20, max: 100) */
+  limit?: number;
+  /** Offset for pagination */
+  offset?: number;
+}
+
+/**
+ * What an analysis found.
+ *
+ * Frame i is sampled at min(i * frames.intervalSeconds, probe.durationSeconds - 0.05).
+ * Each sheet is a JPEG grid of `columns` x `rows` cells, filled row by row, starting at
+ * frame `firstIndex`.
+ *
+ * For an audio asset, `frames` and `audio` are null, `cuts` is empty, and the probe's
+ * width, height and fps are 0.
+ */
+export interface VideoAnalysisResult {
+  probe: {
+    durationSeconds: number;
+    /** Display width, rotation applied */
+    width: number;
+    /** Display height, rotation applied */
+    height: number;
+    fps: number;
+    /** Rotation in degrees, 0-359 */
+    rotation: number;
+    hasAudio: boolean;
+    videoCodec: string | null;
+    audioCodec: string | null;
+  };
+  /** Scene changes in seconds, ascending */
+  cuts: { time: number; score: number }[];
+  frames: {
+    intervalSeconds: number;
+    count: number;
+    cellWidth: number;
+    cellHeight: number;
+    columns: number;
+    rows: number;
+    sheets: { assetId: string; url: string; firstIndex: number; count: number }[];
+  } | null;
+  audio: { assetId: string; url: string; format: "mp3"; sampleRate: 16000; channels: 1 } | null;
+  /** Set when the job asked for beats and the source has audio */
+  music: VideoAnalysisMusic | null;
+}
+
+/**
+ * Beat analysis of a soundtrack. All times are seconds from the start of the track.
+ */
+export interface VideoAnalysisMusic {
+  bpm: number;
+  /** A constant-tempo grid over the whole track */
+  beats: number[];
+  /** Every 4th beat, phased to the strongest kicks */
+  downbeats: number[];
+  /** Low-band (<150 Hz) onsets */
+  kicks: number[];
+  /** The largest sustained step up in bass, on a beat. Null when there is none. */
+  drop: number | null;
+  /** Loudness 0..1 every 0.1 s */
+  envelope: number[];
+}
+
+/**
+ * Video analysis job
+ */
+export interface VideoAnalysisJob {
+  id: string;
+  organizationId: string;
+  projectId: string;
+  assetId: string;
+  environment: "sandbox" | "production";
+  frameIntervalSeconds: number;
+  frameWidth: number;
+  sceneThreshold: number;
+  extractAudio: boolean;
+  beats: boolean;
+  expectedBpm: number | null;
+  dropHint: number | null;
+  status: VideoAnalysisStatus;
+  progress: number | null;
+  errorMessage: string | null;
+  /** Set when status is "completed" */
+  result: VideoAnalysisResult | null;
+  sourceDurationSeconds: number | null;
+  webhookUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
+}
+
+export interface ListVideoAnalysesResponse {
+  jobs: VideoAnalysisJob[];
+  total: number;
+  hasMore: boolean;
+}
+
+// ============================================================================
+// Multipart Upload Types
+// ============================================================================
+
+/**
+ * Request to start a multipart upload
+ */
+export interface CreateMultipartUploadRequest {
+  projectSlug: string;
+  filename: string;
+  mimeType: string;
+  /** File size in bytes */
+  size: number;
+  folder?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CreateMultipartUploadResponse {
+  assetId: string;
+  uploadId: string;
+  /** Bytes in every part except the last */
+  partSize: number;
+  /** One presigned PUT URL per part */
+  parts: { partNumber: number; url: string }[];
+  expiresAt: Date;
+}
+
+export interface CompleteMultipartUploadRequest {
+  assetId: string;
+  uploadId: string;
+  /** Every part's number and the ETag header from its PUT response */
+  parts: { partNumber: number; etag: string }[];
+}
+
+export interface AbortMultipartUploadRequest {
+  assetId: string;
+  uploadId: string;
 }
 
 // ============================================================================
