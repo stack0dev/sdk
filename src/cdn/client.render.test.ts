@@ -136,6 +136,46 @@ describe("CDN render methods", () => {
     expect(job.durationInFrames).toBe(313);
   });
 
+  test("renderFrames POSTs a frames render and getRenderJob returns the stills", async () => {
+    const frames = [
+      { time: 0.5, assetId: "frame-asset-1", url: "https://cdn.example.com/org-id/job-id/frames/00-500ms.jpg" },
+      { time: 4, assetId: "frame-asset-2", url: "https://cdn.example.com/org-id/job-id/frames/01-4000ms.jpg" },
+    ];
+    responses = [
+      {
+        ...jobResponse,
+        outputFormat: "frames",
+        frameTimes: [0.5, 4],
+        frameWidth: 960,
+        outputFrames: null,
+        ignored: ["scenes[0].layers[0].rotate"],
+      },
+      {
+        ...jobResponse,
+        outputFormat: "frames",
+        status: "completed",
+        frameTimes: [0.5, 4],
+        frameWidth: 960,
+        outputFrames: frames,
+        outputAsset: null,
+      },
+    ];
+
+    const job = await cdn.renderFrames({ projectSlug: "my-project", spec: SPEC, frames: [0.5, 4], frameWidth: 960 });
+    expect(requests[0]!.method).toBe("POST");
+    expect(new URL(requests[0]!.url).pathname).toBe("/v1/cdn/video/render");
+    expect(requests[0]!.body).toEqual({
+      projectSlug: "my-project",
+      spec: SPEC,
+      output: { format: "frames", frames: [0.5, 4], frameWidth: 960 },
+    });
+    expect(job.outputFormat).toBe("frames");
+    expect(job.ignored).toEqual(["scenes[0].layers[0].rotate"]);
+
+    const done = await cdn.getRenderJob(job.id);
+    expect(done.outputFrames).toEqual(frames);
+  });
+
   test("sends a loudness target in the output options", async () => {
     responses = [{ ...jobResponse, outputLoudness: { integrated: -14, truePeak: -1 } }];
     const job = await cdn.createRenderJob({

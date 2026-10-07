@@ -78,6 +78,7 @@ import type {
   ListMergeJobsResponse,
   // Video Render Types
   CreateRenderJobRequest,
+  RenderFramesRequest,
   RenderJob,
   RenderJobWithOutput,
   ListRenderJobsRequest,
@@ -1674,6 +1675,25 @@ export class CDN {
   async createRenderJob(request: CreateRenderJobRequest): Promise<RenderJob> {
     const response = await this.http.post<RenderJob>("/cdn/video/render", request);
     return this.convertRenderJobDates(response);
+  }
+
+  /**
+   * Render single frames of a spec as JPEG stills
+   *
+   * The cheap check on a draft: a handful of stills at chosen times, billed
+   * per still, with no soundtrack or encode. Poll `getRenderJob` and read
+   * `outputFrames` when it completes.
+   *
+   * @example
+   * ```typescript
+   * const job = await cdn.renderFrames({ projectSlug: 'my-project', spec, frames: [0.5, 4, 12], frameWidth: 960 });
+   * const done = await cdn.getRenderJob(job.id);
+   * for (const frame of done.outputFrames ?? []) console.log(frame.time, frame.url);
+   * ```
+   */
+  async renderFrames(request: RenderFramesRequest): Promise<RenderJob> {
+    const { frames, frameWidth, ...rest } = request;
+    return this.createRenderJob({ ...rest, output: { format: "frames", frames, frameWidth } });
   }
 
   /**

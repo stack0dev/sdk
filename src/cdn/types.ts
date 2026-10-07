@@ -1121,7 +1121,8 @@ export interface ListMergeJobsResponse {
 // ============================================================================
 
 export type RenderStatus = TranscodingStatus;
-export type RenderOutputFormat = "mp4" | "webm";
+/** "frames" is a frames render: JPEG stills at chosen times instead of a video. */
+export type RenderOutputFormat = "mp4" | "webm" | "frames";
 
 /**
  * The declarative video spec.
@@ -1156,6 +1157,36 @@ export interface RenderOutputConfig {
    * A render with no audio is left as is.
    */
   loudness?: RenderLoudness;
+  /** With format "frames": seconds into the video, 1-24 of them, each before the end. */
+  frames?: number[];
+  /** With format "frames": the width of each still in pixels, 320-1920 (default: 960). */
+  frameWidth?: number;
+}
+
+/**
+ * Request to render single frames of a spec as JPEG stills. Billed per still,
+ * far below a video render: the check to run on a draft before rendering it.
+ */
+export interface RenderFramesRequest {
+  /** Project slug to create the render job in */
+  projectSlug: string;
+  /** The video spec: scenes, layers, timing and media. Data, not code. */
+  spec: VideoSpec;
+  /** Seconds into the video, 1-24 of them, each before the end */
+  frames: number[];
+  /** Width of each still in pixels, 320-1920 (default: 960). The height follows the canvas. */
+  frameWidth?: number;
+  /** Webhook URL for completion notification */
+  webhookUrl?: string;
+}
+
+/** One still from a frames render. */
+export interface RenderFrame {
+  /** Seconds into the video */
+  time: number;
+  /** The JPEG asset */
+  assetId: string;
+  url: string;
 }
 
 export interface RenderLoudness {
@@ -1207,6 +1238,16 @@ export interface RenderJob {
   outputFilename: string | null;
   /** The loudness target the soundtrack was normalized to, or null */
   outputLoudness: { integrated: number; truePeak: number } | null;
+  /** A frames render: the times asked for, and the still width */
+  frameTimes: number[] | null;
+  frameWidth: number | null;
+  /** A frames render's stills, in the order asked for. Null until it completes, and for videos. */
+  outputFrames: RenderFrame[] | null;
+  /**
+   * Paths of spec fields the schema does not know and dropped, e.g.
+   * "scenes[0].layers[2].zoom". The spec still rendered without them.
+   */
+  ignored: string[] | null;
   outputAssetId: string | null;
   status: RenderStatus;
   progress: number | null;
