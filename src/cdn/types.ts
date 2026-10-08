@@ -1187,6 +1187,12 @@ export interface RenderFrame {
   /** The JPEG asset */
   assetId: string;
   url: string;
+  /**
+   * The share of the still with visible detail, 0 to 1: about 0 for a blank
+   * frame, 0.15 for a sparse end card, 0.5 for a screen that fills the frame.
+   * Missing on stills rendered before it was measured.
+   */
+  filled?: number;
 }
 
 export interface RenderLoudness {
