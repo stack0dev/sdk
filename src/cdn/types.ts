@@ -1305,8 +1305,18 @@ export interface CreateVideoAnalysisRequest {
   frameWidth?: number;
   /** Scene-change score that counts as a cut, 0.1-0.9 (default: 0.3) */
   sceneThreshold?: number;
-  /** Extract a mono 16 kHz MP3 when the video has audio (default: true). Ignored for audio assets. */
+  /**
+   * Extract a mono 16 kHz MP3 when the video has audio. Ignored for audio assets.
+   * Default: true, or false when `motion` is true.
+   */
   extractAudio?: boolean;
+  /** Make the frame contact sheets. Default: true, or false when `motion` is true. */
+  frames?: boolean;
+  /**
+   * Measure how much the video moves (default: false). A job with only `motion` skips the
+   * sheets and the audio copy, so it costs one decode. Ignored for audio assets.
+   */
+  motion?: boolean;
   /** Analyse beats, kicks, the drop and loudness of the soundtrack (default: false) */
   beats?: boolean;
   /** Known tempo, 40-220. Fixes the beat period; only the phase is searched. */
@@ -1370,6 +1380,20 @@ export interface VideoAnalysisResult {
   audio: { assetId: string; url: string; format: "mp3"; sampleRate: 16000; channels: 1 } | null;
   /** Set when the job asked for beats and the source has audio */
   music: VideoAnalysisMusic | null;
+  /** Set when the job asked for motion and the source is a video */
+  motion: VideoAnalysisMotion | null;
+}
+
+/**
+ * How much a video moves. Each value is the mean absolute difference between consecutive
+ * frames, grayscale, scaled to 320 px wide, sampled at 10 fps, on a 0-255 scale: the same
+ * as ffmpeg's `scale=320:-2,fps=10,format=gray,tblend=all_mode=difference,signalstats`
+ * reading lavfi.signalstats.YAVG.
+ */
+export interface VideoAnalysisMotion {
+  /** Seconds between values: 0.1 */
+  step: number;
+  values: number[];
 }
 
 /**
@@ -1402,6 +1426,8 @@ export interface VideoAnalysisJob {
   frameWidth: number;
   sceneThreshold: number;
   extractAudio: boolean;
+  frames: boolean;
+  motion: boolean;
   beats: boolean;
   expectedBpm: number | null;
   dropHint: number | null;

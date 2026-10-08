@@ -18,6 +18,8 @@ const jobResponse = {
   frameWidth: 320,
   sceneThreshold: 0.3,
   extractAudio: true,
+  frames: true,
+  motion: false,
   beats: false,
   expectedBpm: null,
   dropHint: null,
@@ -123,6 +125,43 @@ describe("CDN video analysis and multipart methods", () => {
 
     expect(requests[0]!.body).toEqual({ assetId: ASSET_ID, beats: true, expectedBpm: 120, dropHint: 16 });
     expect(job.beats).toBe(true);
+  });
+
+  test("createVideoAnalysis sends a motion-only job and getVideoAnalysis returns the measure", async () => {
+    responses = [
+      { ...jobResponse, motion: true, frames: false, extractAudio: false },
+      {
+        ...jobResponse,
+        motion: true,
+        frames: false,
+        extractAudio: false,
+        status: "completed",
+        result: {
+          probe: {
+            durationSeconds: 4,
+            width: 1920,
+            height: 1080,
+            fps: 30,
+            rotation: 0,
+            hasAudio: false,
+            videoCodec: "h264",
+            audioCodec: null,
+          },
+          cuts: [],
+          frames: null,
+          audio: null,
+          music: null,
+          motion: { step: 0.1, values: [0, 0, 15.59, 16.14] },
+        },
+      },
+    ];
+    const job = await cdn.createVideoAnalysis({ assetId: ASSET_ID, motion: true });
+    expect(requests[0]!.body).toEqual({ assetId: ASSET_ID, motion: true });
+    expect(job.frames).toBe(false);
+
+    const done = await cdn.getVideoAnalysis(JOB_ID);
+    expect(done.result?.motion).toEqual({ step: 0.1, values: [0, 0, 15.59, 16.14] });
+    expect(done.result?.frames).toBeNull();
   });
 
   test("getVideoAnalysis returns an audio-only result with music", async () => {
