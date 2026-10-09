@@ -1224,6 +1224,32 @@ export interface CreateRenderJobRequest {
   webhookUrl?: string;
 }
 
+/** The shapes a film renders in. */
+export type FilmComposition = "landscape" | "vertical" | "square";
+
+/**
+ * Request to render a film written as code: Remotion source files rendered
+ * inside Stack0's fixed film project (an entry, a Root registering one
+ * composition per shape, and a kit of helpers under src/kit/). Send your own
+ * files under src/: src/film.tsx exporting `Film` and `DURATION` (frames at
+ * 30 fps), any modules it imports, and src/media.ts exporting `MEDIA`. A film
+ * may import only react, remotion and the @remotion packages Stack0 installs,
+ * and its page can load media only from the Stack0 CDN and Google Fonts. It
+ * runs in an isolated sandbox.
+ */
+export interface CreateFilmRenderJobRequest {
+  projectSlug: string;
+  film: {
+    /** Source files by path, e.g. { "src/film.tsx": "...", "src/media.ts": "..." } */
+    files: Record<string, string>;
+    composition: FilmComposition;
+    /** The film's length in seconds, up to 180. The render fails if the film runs longer. */
+    durationSeconds: number;
+  };
+  output?: RenderOutputConfig;
+  webhookUrl?: string;
+}
+
 /**
  * Request to list render jobs
  */
@@ -1245,8 +1271,10 @@ export interface RenderJob {
   organizationId: string;
   projectId: string;
   environment: "sandbox" | "production";
-  /** The submitted spec, with media references resolved to URLs */
-  spec: VideoSpec;
+  /** The submitted spec, with media references resolved to URLs. Null for a film. */
+  spec: VideoSpec | null;
+  /** A film render's shape and declared length. Absent for a spec render. */
+  film?: { composition: FilmComposition; durationSeconds: number } | null;
   outputFormat: RenderOutputFormat;
   outputScale: number;
   outputFilename: string | null;

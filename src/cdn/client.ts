@@ -77,6 +77,7 @@ import type {
   ListMergeJobsRequest,
   ListMergeJobsResponse,
   // Video Render Types
+  CreateFilmRenderJobRequest,
   CreateRenderJobRequest,
   RenderFramesRequest,
   RenderJob,
@@ -1674,6 +1675,28 @@ export class CDN {
    */
   async createRenderJob(request: CreateRenderJobRequest): Promise<RenderJob> {
     const response = await this.http.post<RenderJob>("/cdn/video/render", request);
+    return this.convertRenderJobDates(response);
+  }
+
+  /**
+   * Render a film written as code
+   *
+   * Your Remotion source, rendered in Stack0's fixed film project inside an
+   * isolated sandbox. Use output format "frames" to check stills of a draft,
+   * and "mp4" for the finished film. A film that does not compile fails with
+   * the compiler's message in `errorMessage`.
+   *
+   * @example
+   * ```typescript
+   * const job = await cdn.createFilmRenderJob({
+   *   projectSlug: 'my-project',
+   *   film: { files: { 'src/film.tsx': film, 'src/media.ts': media }, composition: 'vertical', durationSeconds: 30 },
+   *   output: { format: 'mp4', loudness: { integrated: -14 } },
+   * });
+   * ```
+   */
+  async createFilmRenderJob(request: CreateFilmRenderJobRequest): Promise<RenderJob> {
+    const response = await this.http.post<RenderJob>("/cdn/video/render/film", request);
     return this.convertRenderJobDates(response);
   }
 
