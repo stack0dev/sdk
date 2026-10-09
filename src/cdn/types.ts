@@ -16,6 +16,14 @@ export interface Asset {
   cdnUrl: string;
   width: number | null;
   height: number | null;
+  /**
+   * Where an image's content sits inside the margin it was captured with (an
+   * app window inside page background, a card inside its padding), in
+   * fractions of the image. Crop a screenshot to it in a video spec so the
+   * corners and shadow drawn around it are the content's own edges. Null for
+   * other types and for images uploaded before it was measured.
+   */
+  contentBox?: { x: number; y: number; width: number; height: number } | null;
   duration: number | null;
   status: AssetStatus;
   folder: string | null;
